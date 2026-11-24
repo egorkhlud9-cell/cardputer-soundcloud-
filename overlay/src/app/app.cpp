@@ -31,7 +31,8 @@ lv_obj_t *page_label=nullptr,*detail_label=nullptr,*eq[3]={nullptr,nullptr,nullp
 lv_obj_t *play_button_label=nullptr;
 bool playing=false,connected=false;
 int queue_count=0,library_count=0,page=0,sleep_minutes=0,sleep_remaining=0;
-uint32_t last_poll=0,last_second=0;\nint rendered_page=-1,rendered_queue=-1,rendered_sleep=-1,rendered_library=-1;
+uint32_t last_poll=0,last_second=0;
+int rendered_page=-1,rendered_queue=-1,rendered_sleep=-1,rendered_library=-1;
 std::string last_title;
 
 std::string http_request(const char* method,const char* path,const std::string& body="") {
@@ -136,6 +137,9 @@ void poll_state(){
 }
 void render_page(){
     if(!screen)return;
+    int sleep_value=sleep_remaining/60;
+    if(page==rendered_page && queue_count==rendered_queue && library_count==rendered_library && (page!=2 || sleep_value==rendered_sleep))return;
+    rendered_page=page;rendered_queue=queue_count;rendered_sleep=sleep_value;rendered_library=library_count;
     if(page==0){
       set_text(page_label,"NOW PLAYING");
       lv_obj_clear_flag(cover,LV_OBJ_FLAG_HIDDEN);lv_obj_clear_flag(progress_bar,LV_OBJ_FLAG_HIDDEN);
