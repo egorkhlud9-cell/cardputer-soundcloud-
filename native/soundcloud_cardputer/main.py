@@ -1,193 +1,159 @@
 from __future__ import annotations
-import os, subprocess, time
+import json, os, shutil, subprocess, threading, time
 import pygame
-from .storage import load_config, save_config, load_library, save_library
-from .soundcloud_api import SoundCloudClient, SoundCloudError
-from .audio_player import AudioPlayer, AudioError
+from .storage import load_config,save_config,load_library,save_library
+from .audio_player import AudioPlayer,AudioError
 from .ui_engine import UI
 
 SECTIONS=["Home","Search","Favorites","Playlists","My Tracks","Now Playing","Settings"]
-def track_url(track):
-    return track.get("permalink_url") or track.get("uri") or ""
+def public_search(query):
+    if not shutil.which("yt-dlp"): raise RuntimeError("yt-dlp is missing. Reinstall the app dependencies.")
+    result=subprocess.run(["yt-dlp","--flat-playlist","-J","scsearch15:"+query],
+        capture_output=True,text=True,timeout=75)
+    if result.returncode: raise RuntimeError((result.stderr or "SoundCloud public search failed")[-180:])
+    data=json.loads(result.stdout)
+    tracks=[]
+    for x in data.get("entries",[]):
+        if not x: continue
+        url=x.get("webpage_url") or x.get("url")
+        if url and not str(url).startswith("http"):
+            url="https://soundcloud.com/"+str(url).lstrip("/")
+        tracks.append({"title":x.get("title") or "Untitled","permalink_url":url,
+            "user":{"username":x.get("uploader") or x.get("channel") or ""}})
+    return tracks
 
 class App:
     def __init__(self):
         self.config=load_config(); self.library=load_library()
-        self.ui=UI(); self.player=AudioPlayer(); self.client=SoundCloudClient(self.config)
-        self.section=self.config.get("last_section","Home"); self.section=self.section if self.section in SECTIONS else "Home"
-        self.items=[]; self.selected=0; self.track=None; self.user=None; self.message="Ready"
-        self.search_text=""; self.busy=False; self.running=True
-        self.refresh_local()
-        if self.config.get("access_token"): self.start_task(self.load_profile)
-    def refresh_local(self):
-        self.library.setdefault("favorites",[]); self.library.setdefault("playlists",[]); self.library.setdefault("history",[])
-    def start_task(self, fn):
+        self.ui=UI(); self.player=AudioPlayer()
+        self.section="Home"; self.items=[]; self.selected=0; self.track=self.config.get("last_track")
+        self.message="Public mode · no account or API key"; self.search_text=""
+        self.busy=False; self.running=True
+        self.player.volume=int(self.config.get("volume",70))
+        self.load_section()
+    def start_task(self,fn):
         if self.busy: return
         self.busy=True; self.message="Working…"
         def run():
             try: fn()
-            except Exception as exc: self.message=str(exc)[:90]
+            except Exception as exc: self.message=str(exc)[:100]
             finally: self.busy=False
-        import threading
         threading.Thread(target=run,daemon=True).start()
-    def load_profile(self):
-        self.user=self.client.me(); self.message="Connected: "+self.user.get("username","SoundCloud")
     def load_section(self):
-        if self.section=="Home": self.items=["Search tracks","Your favorites","Your playlists","Your uploads","Now playing","Settings"]
-        elif self.section=="Favorites":
-            self.items=self.client.likes() if self.config.get("access_token") else self.library["favorites"]
-        elif self.section=="Playlists":
-            self.items=self.client.playlists() if self.config.get("access_token") else self.library["playlists"]
-        elif self.section=="My Tracks": self.items=self.client.my_tracks() if self.config.get("access_token") else self.library.get("my_tracks",[])
+        if self.section=="Home":
+            self.items=["Search SoundCloud","Favorites","Playlists","Recently played","Now Playing","Settings"]
+        elif self.section=="Favorites": self.items=self.library["favorites"]
+        elif self.section=="Playlists": self.items=self.library["playlists"]
+        elif self.section=="My Tracks": self.items=[]
+        elif self.section=="Recently played": self.items=self.library["history"]
         elif self.section=="Search": self.items=[]
         elif self.section=="Settings":
-            self.items=["Connect / reconnect SoundCloud","Sync account library","Set Client ID","Set Client Secret","Set redirect URI","Disconnect account","Back"]
-        self.selected=0
-    def navigate(self, section):
-        self.section=section; self.config["last_section"]=section; save_config(self.config); self.load_section()
-    def play_track(self, track):
-        url=self.client.stream_url(track) if self.config.get("access_token") else None
-        if not url:
-            page=track_url(track)
-            if not page: raise AudioError("Track has no public URL.")
-            import shutil
-            if not shutil.which("yt-dlp"): raise AudioError("yt-dlp is not installed.")
-            result=subprocess.run(["yt-dlp","-g","-f","bestaudio/best",page],capture_output=True,text=True,timeout=45)
-            if result.returncode: raise AudioError(result.stderr[-180:] or "Could not resolve stream.")
-            url=result.stdout.strip().splitlines()[0]
-        self.player.play(url,track.get("title",""))
-        self.track=track; self.navigate("Now Playing")
-        self.config["last_track"]=track; save_config(self.config)
-        self.library["history"]=[track]+self.library.get("history",[])[:49]; save_library(self.library)
-    def sync(self):
-        if not self.config.get("access_token"): raise SoundCloudError("Connect SoundCloud first.")
-        likes=self.client.likes(); playlists=self.client.playlists(); uploads=self.client.my_tracks()
-        self.library["favorites"]=likes; self.library["playlists"]=playlists; self.library["my_tracks"]=uploads
-        self.library["synced_at"]=int(time.time()); save_library(self.library)
-        if self.section=="Favorites": self.items=likes
-        elif self.section=="Playlists": self.items=playlists
-        elif self.section=="My Tracks": self.items=uploads
-        self.message=f"Synced {len(likes)} likes, {len(playlists)} playlists, {len(uploads)} uploads"
-    def login(self):
-        self.message="Approve in external browser…"
-        self.user=self.client.login(); self.message="Connected as "+self.user.get("username","user")
-        self.sync()
-    def logout(self):
-        try:
-            self.client.disconnect()
-            self.message="SoundCloud access revoked"
-        except Exception as exc:
-            self.message="Local logout; remote revoke failed: "+str(exc)[:45]
-        self.config.update({"access_token":"","refresh_token":"","expires_at":0,"scope":""})
-        save_config(self.config); self.user=None
-    def toggle_favorite(self, track):
-        if self.config.get("access_token"):
-            existing={x.get("urn") or x.get("id") for x in self.client.likes()}
-            ident=track.get("urn") or track.get("id")
-            if ident in existing: self.client.unlike(track); self.message="Removed SoundCloud like"
-            else: self.client.like(track); self.message="Liked on SoundCloud"
-            if self.section=="Favorites": self.items=self.client.likes()
-        else:
-            fav=self.library["favorites"]; ident=track.get("urn") or track.get("id")
-            found=next((x for x in fav if (x.get("urn") or x.get("id"))==ident),None)
-            if found: fav.remove(found); self.message="Removed local favorite"
-            else: fav.insert(0,track); self.message="Saved to local favorites"
-            save_library(self.library)
-            if self.section=="Favorites": self.items=fav
-    def edit_setting(self, idx):
-        labels=["Client ID","Client Secret","Redirect URI"]
-        key=["client_id","client_secret","redirect_uri"][idx]
-        value=self.config.get(key,"")
-        self.message="Type "+labels[idx]+":"
-        pygame.key.start_text_input()
-        editing=True
-        while editing and self.running:
-            for e in pygame.event.get():
-                if e.type==pygame.QUIT: self.running=False; editing=False
-                elif e.type==pygame.KEYDOWN:
-                    if e.key==pygame.K_RETURN: editing=False
-                    elif e.key==pygame.K_ESCAPE: editing=False
-                    elif e.key==pygame.K_BACKSPACE: value=value[:-1]
-                    elif e.unicode and e.unicode.isprintable(): value+=e.unicode
-            shown=("•"*len(value)) if idx==1 else value
-            self.ui.draw("Settings",self.items,self.selected,self.message,self.track,self.player.status(),self.user,self.message,shown)
-            self.ui.tick()
-        pygame.key.stop_text_input()
-        if value.strip(): self.config[key]=value.strip(); save_config(self.config)
-        self.message="Saved locally (owner-only file permissions)"
+            self.items=["Playback volume: "+str(self.player.volume)+"%","Clear play history","About / no API keys required","Back"]
+        self.selected=max(0,min(self.selected,len(self.items)-1))
+    def navigate(self,section):
+        self.section=section; self.selected=0
+        self.config["last_section"]=section; save_config(self.config); self.load_section()
+    def play_track(self,track):
+        page=track.get("permalink_url") or track.get("url") or track.get("webpage_url")
+        if not page: raise AudioError("This result has no public SoundCloud URL.")
+        if not shutil.which("yt-dlp"): raise AudioError("yt-dlp is not installed.")
+        result=subprocess.run(["yt-dlp","-g","-f","bestaudio/best",page],
+            capture_output=True,text=True,timeout=60)
+        if result.returncode or not result.stdout.strip():
+            raise AudioError((result.stderr or "Could not resolve this public track")[-160:])
+        self.player.play(result.stdout.strip().splitlines()[0],track.get("title",""))
+        self.track=track; self.config["last_track"]=track; self.config["volume"]=self.player.volume
+        save_config(self.config)
+        self.library["history"]=[track]+[x for x in self.library["history"] if x.get("permalink_url")!=page]
+        self.library["history"]=self.library["history"][:80]; save_library(self.library)
+        self.navigate("Now Playing")
+    def search(self):
+        if not self.search_text.strip(): self.message="Type a search phrase first"; return
+        self.items=public_search(self.search_text.strip()); self.selected=0
+        self.message=f"{len(self.items)} public results"
+    def toggle_favorite(self,track):
+        key=track.get("permalink_url") or track.get("id")
+        fav=self.library["favorites"]
+        old=next((x for x in fav if (x.get("permalink_url") or x.get("id"))==key),None)
+        if old: fav.remove(old); self.message="Removed from local favorites"
+        else: fav.insert(0,track); self.message="Saved to local favorites"
+        save_library(self.library); self.load_section()
+    def add_to_playlist(self,track):
+        playlists=self.library["playlists"]
+        if not playlists:
+            playlists.append({"name":"My playlist","tracks":[]})
+        playlists[0].setdefault("tracks",[]).append(track)
+        save_library(self.library); self.message="Added to "+playlists[0]["name"]
     def activate(self):
         if self.section=="Home":
-            target=["Search","Favorites","Playlists","My Tracks","Now Playing","Settings"][self.selected]
+            target=["Search","Favorites","Playlists","Recently played","Now Playing","Settings"][self.selected]
             self.navigate(target)
         elif self.section=="Settings":
-            if self.selected==0: self.start_task(self.login)
-            elif self.selected==1: self.start_task(self.sync)
-            elif self.selected in (2,3,4): self.edit_setting(self.selected-2)
-            elif self.selected==5: self.start_task(self.logout)
-            elif self.selected==6: self.navigate("Home")
-        elif self.section=="Search":
-            if self.items and self.selected<len(self.items): self.start_task(lambda:self.play_track(self.items[self.selected]))
+            if self.selected==0:
+                self.player.set_volume(self.player.volume+5); self.config["volume"]=self.player.volume; save_config(self.config)
+                self.load_section()
+            elif self.selected==1:
+                self.library["history"]=[]; save_library(self.library); self.message="History cleared"; self.load_section()
+            elif self.selected==2: self.message="No login, API key or subscription required"
+            else: self.navigate("Home")
         elif self.section=="Playlists":
             if self.items:
                 playlist=self.items[self.selected]
-                self.start_task(lambda:self.show_playlist(playlist))
-        elif self.section in ("Favorites","My Tracks","Playlist"):
-            if self.items and self.selected<len(self.items): self.start_task(lambda:self.play_track(self.items[self.selected]))
+                self.items=playlist.get("tracks",[]); self.section="Playlist"; self.selected=0
+        elif self.section=="Playlist":
+            if self.items and isinstance(self.items[self.selected],dict):
+                self.start_task(lambda:self.play_track(self.items[self.selected]))
+        elif self.section in ("Search","Favorites","Recently played"):
+            if self.items and isinstance(self.items[self.selected],dict):
+                self.start_task(lambda:self.play_track(self.items[self.selected]))
         elif self.section=="Now Playing": self.player.toggle()
-    def show_playlist(self, playlist):
-        if self.config.get("access_token"):
-            self.items=self.client.playlist_tracks(playlist)
-        else:
-            self.items=playlist.get("tracks",[])
-        self.section="Playlist"; self.selected=0; self.message="Playlist tracks"
-    def search(self):
-        if self.config.get("access_token"):
-            self.items=self.client.search_tracks(self.search_text)
-        else:
-            import shutil
-            if not shutil.which("yt-dlp"): raise SoundCloudError("Connect SoundCloud or install yt-dlp for public search.")
-            result=subprocess.run(["yt-dlp","--flat-playlist","-J","scsearch10:"+self.search_text],capture_output=True,text=True,timeout=60)
-            if result.returncode: raise SoundCloudError(result.stderr[-160:] or "Public search failed.")
-            data=__import__("json").loads(result.stdout)
-            self.items=[{"title":x.get("title","Untitled"),"permalink_url":x.get("url") or x.get("webpage_url"),"user":{"username":x.get("uploader","")}} for x in data.get("entries",[]) if x]
-        self.selected=0; self.message=f"{len(self.items)} results"
-    def handle(self, event):
-        if event.type==pygame.QUIT: self.running=False
-        if event.type==pygame.KEYDOWN:
-            if self.section=="Search" and event.key==pygame.K_BACKSPACE:
-                self.search_text=self.search_text[:-1]; return
-            if self.section=="Search" and event.key==pygame.K_RETURN:
-                self.start_task(self.search); return
-            if self.section=="Search" and event.unicode and event.unicode.isprintable() and event.key not in (pygame.K_ESCAPE,):
-                self.search_text+=event.unicode; return
-            if event.key in (pygame.K_ESCAPE,pygame.K_BACKSPACE):
-                if self.section=="Now Playing": self.navigate("Home")
-                elif self.section=="Playlist": self.navigate("Playlists")
-                elif self.section!="Home": self.navigate("Home")
-                else: self.running=False
-            elif event.key in (pygame.K_UP,pygame.K_k): self.selected=max(0,self.selected-1)
-            elif event.key in (pygame.K_DOWN,pygame.K_j): self.selected=min(max(0,len(self.items)-1),self.selected+1)
-            elif event.key in (pygame.K_RETURN,pygame.K_KP_ENTER): self.activate()
-            elif event.key==pygame.K_SPACE:
-                if self.section=="Now Playing": self.player.toggle()
-                elif self.items and isinstance(self.items[self.selected],dict): self.start_task(lambda:self.play_track(self.items[self.selected]))
-            elif event.key==pygame.K_f and self.items and isinstance(self.items[self.selected],dict):
-                self.start_task(lambda:self.toggle_favorite(self.items[self.selected]))
-            elif event.key==pygame.K_LEFT and self.section=="Now Playing": self.player.seek(-10)
-            elif event.key==pygame.K_RIGHT and self.section=="Now Playing": self.player.seek(10)
-            elif event.key in (pygame.K_PLUS,pygame.K_EQUALS): self.player.set_volume(self.player.volume+5)
-            elif event.key==pygame.K_MINUS: self.player.set_volume(self.player.volume-5)
-            elif event.key==pygame.K_r: self.start_task(self.load_section)
-            elif event.key==pygame.K_s and self.section=="Settings": self.start_task(self.sync)
-            elif event.key==pygame.K_c and self.section=="Settings": self.start_task(self.login)
+    def handle(self,event):
+        if event.type==pygame.QUIT: self.running=False; return
+        if event.type!=pygame.KEYDOWN: return
+        key=event.key
+        if self.section=="Search":
+            if key==pygame.K_BACKSPACE: self.search_text=self.search_text[:-1]; return
+            if key in (pygame.K_RETURN,pygame.K_KP_ENTER): self.start_task(self.search); return
+            if key==pygame.K_ESCAPE: self.navigate("Home"); return
+            if event.unicode and event.unicode.isprintable(): self.search_text+=event.unicode; return
+        if key in (pygame.K_ESCAPE,pygame.K_BACKSPACE):
+            if self.section=="Now Playing": self.navigate("Home")
+            elif self.section=="Playlist": self.navigate("Playlists")
+            elif self.section!="Home": self.navigate("Home")
+            else: self.running=False
+        elif self.section=="Now Playing" and key in (pygame.K_UP,pygame.K_PLUS,pygame.K_EQUALS):
+            self.player.set_volume(self.player.volume+5); self.message=f"Volume {self.player.volume}%"
+        elif self.section=="Now Playing" and key in (pygame.K_DOWN,pygame.K_MINUS):
+            self.player.set_volume(self.player.volume-5); self.message=f"Volume {self.player.volume}%"
+        elif key==pygame.K_UP: self.selected=max(0,self.selected-1)
+        elif key==pygame.K_DOWN: self.selected=min(max(0,len(self.items)-1),self.selected+1)
+        elif key in (pygame.K_RETURN,pygame.K_KP_ENTER): self.activate()
+        elif key==pygame.K_SPACE:
+            if self.section=="Now Playing": self.player.toggle()
+            elif self.section in ("Search","Favorites","Recently played","Playlist") and self.items:
+                self.start_task(lambda:self.play_track(self.items[self.selected]))
+        elif key==pygame.K_f and self.section in ("Search","Favorites","Recently played") and self.items:
+            self.toggle_favorite(self.items[self.selected])
+        elif key==pygame.K_p and self.section in ("Search","Favorites","Recently played") and self.items:
+            self.add_to_playlist(self.items[self.selected])
+        elif key==pygame.K_LEFT and self.section=="Now Playing": self.player.seek(-10)
+        elif key==pygame.K_RIGHT and self.section=="Now Playing": self.player.seek(10)
+        elif key==pygame.K_r: self.start_task(self.load_section)
+        elif key in (pygame.K_PLUS,pygame.K_EQUALS) and self.section!="Now Playing":
+            self.player.set_volume(self.player.volume+5); self.message=f"Volume {self.player.volume}%"
     def run(self):
-        self.load_section()
         while self.running:
             for event in pygame.event.get(): self.handle(event)
-            self.ui.draw(self.section,self.items,self.selected,self.message,self.track,self.player.status(),self.user,self.message,self.search_text)
+            self.ui.draw(self.section,self.items,self.selected,self.message,self.track,
+                self.player.status(),None,self.message,self.search_text)
             self.ui.tick()
         self.player.stop(); self.ui.quit()
 def main():
-    os.environ.setdefault("SDL_VIDEO_WINDOW_POS","0,0")
-    App().run()
+    try: App().run()
+    except Exception as exc:
+        log=os.path.expanduser("~/.local/state/soundcloud-cardputer/crash.log")
+        os.makedirs(os.path.dirname(log),exist_ok=True)
+        with open(log,"a",encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {type(exc).__name__}: {exc}\n")
+        raise
 if __name__=="__main__": main()

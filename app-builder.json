@@ -2,8 +2,8 @@
   "app_name": "SoundCloud Cardputer",
   "package_name": "soundcloud-cardputer",
   "bin_name": "soundcloud-cardputer",
-  "version": "1.0.0",
-  "description": "Native SoundCloud player for Cardputer Zero. Pygame/SDL2 interface, MPV audio, OAuth 2.1 PKCE account sync.",
+  "version": "1.0.1",
+  "description": "Native public SoundCloud player for Cardputer Zero. Pygame/SDL2 UI, MPV audio, local favorites and playlists. No API keys.",
   "license": "MIT",
   "source_repo": "https://github.com/egorkhlud9-cell/cardputer-soundcloud-"
 }
