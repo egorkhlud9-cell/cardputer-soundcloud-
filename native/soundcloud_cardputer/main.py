@@ -150,7 +150,7 @@ class App:
     def run(self):
         print("BOOT: entering main event loop", flush=True)
         while self.running:
-            for event in pygame.event.get(): self.handle(event)
+            for event in self.ui.events(): self.handle(event)
             self.ui.draw(self.section,self.items,self.selected,self.message,self.track,
                 self.player.status(),None,self.message,self.search_text)
             self.ui.tick()
