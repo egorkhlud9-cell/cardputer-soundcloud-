@@ -54,7 +54,7 @@ footer{height:19px;min-height:19px;border-top:1px solid #252525;padding:3px 8px;
 <div class="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div>
 <div class="row"><span class="hint">VOL</span><input id="volume" type="range" min="0" max="100" value="75" style="flex:1;accent-color:#ff5500"><span id="volval" class="hint">75%</span></div>
 </div>
-<div class="card"><div class="kicker">QUICK CONTROLS</div><div class="hint">Q PLAY/PAUSE · A PREVIOUS · D NEXT</div><div class="hint">W VOLUME + · S VOLUME − · 1–5 CHANGE TAB</div></div>
+<div class="card"><div class="kicker">QUICK CONTROLS</div><div class="hint">Q PLAY/PAUSE · W PREVIOUS · E NEXT</div><div class="hint">A MUTE · S VOLUME − · D VOLUME + · 1–5 CHANGE TAB</div></div>
 <div class="hint">Plays public SoundCloud embeds on this Cardputer. No phone connection.</div>
 </section>
 <section class="page" id="add">
@@ -73,7 +73,7 @@ footer{height:19px;min-height:19px;border-top:1px solid #252525;padding:3px 8px;
 <script>
 (function(){
 var $=function(id){return document.getElementById(id);};
-var widget=null,widgetCreated=false,ready=false,currentUrl="",currentSound=null,playing=false,duration=0,position=0,volume=75,queue=[],library=[],playlists=[],activeList=null,sleepTimer=null;
+var widget=null,widgetCreated=false,ready=false,currentUrl="",currentSound=null,playing=false,duration=0,position=0,volume=75,preMuteVolume=75,queue=[],library=[],playlists=[],activeList=null,sleepTimer=null;
 function request(path,body,done){
  var x=new XMLHttpRequest();x.open(body?"POST":"GET",path,true);if(body)x.setRequestHeader("Content-Type","application/json");
  x.onreadystatechange=function(){if(x.readyState===4){var data={};try{data=JSON.parse(x.responseText||"{}");}catch(e){}if(done)done(x.status>=200&&x.status<300?null:(data.error||"Request failed"),data);}};
@@ -81,6 +81,8 @@ function request(path,body,done){
 }
 function toast(s){var t=$("toast");t.innerHTML=s;t.style.display="block";window.setTimeout(function(){t.style.display="none";},2400);}
 function fmt(n){n=Math.max(0,Math.floor((n||0)/1000));return Math.floor(n/60)+":"+("0"+(n%60)).slice(-2);}
+function changeVolume(value){volume=Math.max(0,Math.min(100,value));$("volume").value=volume;$("volval").innerHTML=volume+"%";if(widget&&ready)widget.setVolume(volume);request("/api/state",{volume:volume},function(){});}
+function toggleMute(){if(volume>0){preMuteVolume=volume;changeVolume(0);}else{changeVolume(preMuteVolume||75);}}
 function validUrl(s){return /^https?:\/\/([a-z0-9-]+\.)*soundcloud\.com\//i.test((s||"").replace(/^\s+|\s+$/g,""));}
 function page(name){var pages=document.getElementsByClassName("page"),tabs=document.querySelectorAll("nav button"),i;for(i=0;i<pages.length;i++)pages[i].className="page"+(pages[i].id===name?" active":"");for(i=0;i<tabs.length;i++)tabs[i].className=tabs[i].getAttribute("data-page")===name?"active":"";if(name==="queue")refreshQueue();if(name==="library")refreshLibrary();if(name==="lists")refreshPlaylists();}
 function publish(){
@@ -132,10 +134,11 @@ document.addEventListener("keydown",function(e){
  var target=e.target,tag=(target&&target.tagName||"").toLowerCase();if(tag==="input"||tag==="textarea")return;
  var k=e.keyCode;
  if(k===81){if(widget&&ready)widget.toggle();e.preventDefault();}
- else if(k===65){if(widget&&ready)widget.prev();e.preventDefault();}
- else if(k===68){skipNext();e.preventDefault();}
- else if(k===87){volume=Math.min(100,volume+5);$("volume").value=volume;$("volval").innerHTML=volume+"%";if(widget&&ready)widget.setVolume(volume);request("/api/state",{volume:volume},function(){});e.preventDefault();}
- else if(k===83){volume=Math.max(0,volume-5);$("volume").value=volume;$("volval").innerHTML=volume+"%";if(widget&&ready)widget.setVolume(volume);request("/api/state",{volume:volume},function(){});e.preventDefault();}
+ else if(k===87){if(widget&&ready)widget.prev();e.preventDefault();}
+ else if(k===69){skipNext();e.preventDefault();}
+ else if(k===65){toggleMute();e.preventDefault();}
+ else if(k===68){changeVolume(volume+5);e.preventDefault();}
+ else if(k===83){changeVolume(volume-5);e.preventDefault();}
  else if(k>=49&&k<=53){var names=["player","add","queue","library","lists"];page(names[k-49]);e.preventDefault();}
  else if(k===27){page("player");}
 });
