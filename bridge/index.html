@@ -73,7 +73,7 @@ footer{height:19px;min-height:19px;border-top:1px solid #252525;padding:3px 8px;
 <script>
 (function(){
 var $=function(id){return document.getElementById(id);};
-var widget=null,ready=false,currentUrl="",currentSound=null,playing=false,duration=0,position=0,volume=75,queue=[],library=[],playlists=[],activeList=null,sleepTimer=null;
+var widget=null,widgetCreated=false,ready=false,currentUrl="",currentSound=null,playing=false,duration=0,position=0,volume=75,queue=[],library=[],playlists=[],activeList=null,sleepTimer=null;
 function request(path,body,done){
  var x=new XMLHttpRequest();x.open(body?"POST":"GET",path,true);if(body)x.setRequestHeader("Content-Type","application/json");
  x.onreadystatechange=function(){if(x.readyState===4){var data={};try{data=JSON.parse(x.responseText||"{}");}catch(e){}if(done)done(x.status>=200&&x.status<300?null:(data.error||"Request failed"),data);}};
@@ -89,7 +89,7 @@ function publish(){
 }
 function escapeHtml(s){return String(s||"").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function widgetReady(){
- if(ready)return;ready=true;widget=SC.Widget($("widget"));
+ if(widgetCreated)return;widgetCreated=true;widget=SC.Widget($("widget"));
  widget.bind(SC.Widget.Events.READY,function(){ready=true;widget.setVolume(volume);$("state").innerHTML="READY";publish();});
  widget.bind(SC.Widget.Events.PLAY,publish);widget.bind(SC.Widget.Events.PAUSE,publish);widget.bind(SC.Widget.Events.SEEK,publish);widget.bind(SC.Widget.Events.PLAY_PROGRESS,publish);
  widget.bind(SC.Widget.Events.FINISH,function(){playing=false;playNextQueued();});
@@ -102,7 +102,7 @@ function loadUrl(url,autoplay){
   $("widget").src="https://w.soundcloud.com/player/?url="+encodeURIComponent(url)+"&auto_play="+(autoplay?"true":"false")+"&hide_related=true&show_comments=false&show_user=true&visual=false&color=%23ff5500";
   widgetReady();
  }else{
-  widget.load(url,{auto_play:!!autoplay,hide_related:true,show_comments:false,show_user:true,visual:false,color:"#ff5500"},function(){widget.setVolume(volume);publish();});
+  widget.load(url,{auto_play:!!autoplay,hide_related:true,show_comments:false,show_user:true,visual:false,color:"#ff5500",callback:function(){widget.setVolume(volume);publish();}});
  }
  return true;
 }
@@ -122,7 +122,7 @@ $("create").onclick=function(){var name=$("listname").value.replace(/^\s+|\s+$/g
 $("prev").onclick=function(){if(widget&&ready)widget.prev();};
 $("next").onclick=function(){if(widget&&ready)widget.next();};
 $("toggle").onclick=function(){if(widget&&ready)widget.toggle();};
-$("volume").oninput=function(){volume=parseInt(this.value,10)||0;$("volval").innerHTML=volume+"%";if(widget&&ready)widget.setVolume(volume);};
+$("volume").oninput=function(){volume=parseInt(this.value,10)||0;$("volval").innerHTML=volume+"%";if(widget&&ready)widget.setVolume(volume);request("/api/state",{volume:volume},function(){});};
 $("progress").onchange=function(){if(widget&&ready&&duration)widget.seekTo(Math.round(parseInt(this.value,10)*duration/1000));};
 $("clearqueue").onclick=function(){request("/api/queue/clear",{},function(){refreshQueue();toast("Queue cleared");});};
 var tabs=document.querySelectorAll("nav button");for(var ti=0;ti<tabs.length;ti++)tabs[ti].onclick=function(){page(this.getAttribute("data-page"));};
@@ -132,8 +132,8 @@ document.addEventListener("keydown",function(e){
  if(k===81){if(widget&&ready)widget.toggle();e.preventDefault();}
  else if(k===65){if(widget&&ready)widget.prev();e.preventDefault();}
  else if(k===68){if(widget&&ready)widget.next();e.preventDefault();}
- else if(k===87){volume=Math.min(100,volume+5);$("volume").value=volume;$("volval").innerHTML=volume+"%";if(widget&&ready)widget.setVolume(volume);e.preventDefault();}
- else if(k===83){volume=Math.max(0,volume-5);$("volume").value=volume;$("volval").innerHTML=volume+"%";if(widget&&ready)widget.setVolume(volume);e.preventDefault();}
+ else if(k===87){volume=Math.min(100,volume+5);$("volume").value=volume;$("volval").innerHTML=volume+"%";if(widget&&ready)widget.setVolume(volume);request("/api/state",{volume:volume},function(){});e.preventDefault();}
+ else if(k===83){volume=Math.max(0,volume-5);$("volume").value=volume;$("volval").innerHTML=volume+"%";if(widget&&ready)widget.setVolume(volume);request("/api/state",{volume:volume},function(){});e.preventDefault();}
  else if(k>=49&&k<=53){var names=["player","add","queue","library","lists"];page(names[k-49]);e.preventDefault();}
  else if(k===27){page("player");}
 });
