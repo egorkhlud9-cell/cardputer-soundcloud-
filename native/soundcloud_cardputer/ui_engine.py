@@ -204,7 +204,7 @@ class UI:
         self._text(right, 183, 157, self.tiny, MUTED, 128)
 
     def draw(self, section, items, selected, status, track, player_status, user=None, message="", search_text=""):
-        self.image.paste(BG, (0, 0))
+        self.image.paste(BG, (0, 0, self.width, self.height))
         self.drawctx = ImageDraw.Draw(self.image)
         d = self.drawctx
         self._header(section, "INPUT OK" if self.devices else "NO KEYS")
