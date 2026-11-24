@@ -1,0 +1,61 @@
+name: Build CardputerZero package
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v4
+
+      - name: Install cross-build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build crossbuild-essential-arm64 dpkg-dev libpng-dev libjpeg-dev libfmt-dev libfreetype-dev zlib1g-dev pkg-config
+          python3 -m pip install --user --break-system-packages cmake==3.31.6
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Fetch official CardputerZero template
+        run: git clone --depth 1 https://github.com/CardputerZero/Template.git /tmp/cp0-template
+
+      - name: Apply CloudZero application files
+        run: |
+          cp overlay/src/app/app.cpp /tmp/cp0-template/src/app/app.cpp
+          cp overlay/src/app/app.h /tmp/cp0-template/src/app/app.h
+          cp app-builder.json /tmp/cp0-template/app-builder.json
+          cp README.md /tmp/cp0-template/README.md
+          sed -i 's/project(template_app VERSION 0.2.1/project(cloudzero VERSION 0.1.0/' /tmp/cp0-template/CMakeLists.txt
+
+      - name: Configure ARM64 build
+        working-directory: /tmp/cp0-template
+        run: |
+          cmake --preset cp0-cross \
+            -DAPP_NAME=CloudZero \
+            -DAPP_DISPLAY_NAME=CloudZero \
+            -DAPP_MAINTAINER="CloudZero contributors <noreply@users.noreply.github.com>" \
+            -DAPP_PACKAGE_DESCRIPTION="SoundCloud player and phone remote for CardputerZero" \
+            -DAPP_INSTALL_SYSTEMD_SERVICE=OFF
+
+      - name: Compile
+        working-directory: /tmp/cp0-template
+        run: cmake --build --preset cp0-cross-rel --parallel 2
+
+      - name: Package
+        working-directory: /tmp/cp0-template
+        run: cpack --preset cp0-cross-deb
+
+      - name: Upload Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudzero-cardputerzero-arm64
+          path: /tmp/cp0-template/dist/*.deb
+          if-no-files-found: error
+          retention-days: 14
