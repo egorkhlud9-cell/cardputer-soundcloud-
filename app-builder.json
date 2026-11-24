@@ -1,0 +1,26 @@
+{
+  "app_name": "CloudZero",
+  "package_name": "cloudzero",
+  "version": "0.1.0",
+  "description": "SoundCloud player and phone remote for CardputerZero",
+  "store": {
+    "summary": "A compact SoundCloud companion for CardputerZero",
+    "description": "A dark 320x170 player interface for CardputerZero, designed to pair with the official SoundCloud embedded player running on a phone over local Wi-Fi.",
+    "categories": ["music", "tools"],
+    "screenshots": [],
+    "icon": "assets/images/template.png",
+    "license": "MIT",
+    "source_repo": "https://github.com/egorkhlud9-cell/cardputer-soundcloud-",
+    "author": { "github": "egorkhlud9-cell", "display_name": "CloudZero" },
+    "share_code": "cloudzero",
+    "permissions": {
+      "camera": false,
+      "microphone": false,
+      "imu": false,
+      "network": true,
+      "additional_hardware": false,
+      "background_service": false,
+      "external_display": false
+    }
+  }
+}
