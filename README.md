@@ -1,52 +1,62 @@
 # CloudZero
 
-CloudZero is a dark, SoundCloud-inspired player interface for M5Stack Cardputer Zero (320x170, ARM64), paired with a phone browser.
+CloudZero is an independent, on-device music player shell for M5Stack Cardputer Zero. The UI, queue, saved library and user-created playlists run locally on the Cardputer. A phone is not part of playback.
 
-## Included in this build
+## What this build does
 
-- Native LVGL interface sized for the 320x170 display.
-- Animated playback equalizer, animated progress, title transitions and orange-accented UI.
-- Physical keyboard navigation: keys 4/5/6 for previous, play/pause and next; 7 changes screen; 8 cycles the sleep timer.
-- Now Playing, Up Next and Sleep screens.
-- Phone companion with SoundCloud's official embedded player.
-- Local library for saving SoundCloud track and playlist URLs on the Cardputer.
-- Queue metadata synchronization from the official Widget API.
-- Local HTTP bridge with a systemd service that is enabled on package installation.
-- ARM64 Debian package built by GitHub Actions.
+- Launches a custom CloudZero interface on the Cardputer display using the installed Zero Browser QtWebKit engine.
+- Uses SoundCloud's official HTML5 Widget API as the playback engine for public tracks and playlists.
+- Plays audio on the Cardputer itself through the system audio output (speaker or 3.5 mm output), subject to the device's audio configuration.
+- Controls play/pause, previous/next, seek and widget volume.
+- Stores a local saved library, queue and user-created playlists under /var/lib/cloudzero/.
+- Starts its local-only service automatically when the package is installed.
+- Does not require the phone companion, a phone browser, or a phone-to-Cardputer connection.
 
-## Playback and account integration
+## Honest SoundCloud limitations
 
-The current release delegates SoundCloud playback to its official embedded player in the phone browser. The Cardputer is the compact controller/display; it does not yet decode SoundCloud streams natively.
+This project deliberately uses the documented SoundCloud Widget. It does not scrape private endpoints, copy browser cookies, steal session tokens, or bypass track restrictions.
 
-The companion can search using SoundCloud's own search page, load public track/playlist URLs, control playback, display queue information and save links in the Cardputer's local library.
+Without an approved SoundCloud API application, CloudZero cannot provide a native in-app SoundCloud catalogue search or synchronize private account data such as likes and private playlists. SoundCloud's current developer registration requirements restrict creation of API credentials. This build therefore accepts public SoundCloud track/playlist links and lets you organize them into CloudZero-local playlists. Those playlists are stored on the Cardputer, not in your SoundCloud account.
 
-Direct native playback and full account synchronization require an approved SoundCloud API app and OAuth 2.1 credentials. Current SoundCloud developer registration requires Artist Pro to create Client ID/Client Secret credentials, even though API requests are currently free. CloudZero will not extract browser cookies, reuse private session tokens, scrape private endpoints or bypass track restrictions. See docs/SOUNDCLOUD_API.md.
+The embedded player is official SoundCloud playback, not an independently implemented decoder. The custom CloudZero interface surrounds and controls it; the browser engine must remain installed. The device must have Wi-Fi for online playback.
+
+## Browser requirement and security
+
+CloudZero launches the command zero-browser --mode qtwebkit. Install the Cardputer Zero Zero Browser application first. Its QtWebKit engine is experimental and based on an old WebKit revision. It is not suitable for logging into accounts, entering passwords, or handling sensitive information. CloudZero does not ask for SoundCloud credentials and does not store cookies or OAuth tokens. Only load public SoundCloud links.
+
+If Zero Browser is unavailable, the CloudZero launcher exits with a clear error instead of silently falling back to the phone remote.
 
 ## Install
 
-On Cardputer Zero, once the latest CI build has published the release asset, install with:
+The package is built for ARM64 Debian on Cardputer Zero. On the device, run:
 
-```bash
-curl -fL https://github.com/egorkhlud9-cell/cardputer-soundcloud-/releases/download/cloudzero-latest/CloudZero_0.1.0_rev1_arm64.deb -o /tmp/cloudzero.deb
-sudo apt-get install -y /tmp/cloudzero.deb
-```
+    curl -fL https://github.com/egorkhlud9-cell/cardputer-soundcloud-/releases/download/cloudzero-latest/CloudZero_0.1.0_rev1_arm64.deb -o /tmp/cloudzero.deb && sudo apt-get install -y /tmp/cloudzero.deb
 
-The package enables and starts cloudzero-bridge.service automatically. Connect the phone and Cardputer to the same Wi-Fi, then open `http://CARDPUTER_IP:8765` in the phone browser. Load a SoundCloud URL and use the Cardputer keyboard to control it.
+Open CloudZero from APPLaunch. The cloudzero-bridge.service local application server is enabled automatically. The UI is served only on 127.0.0.1:8765; it is not exposed to the LAN.
 
-## Keyboard
+## Controls
 
 | Key | Action |
 |---|---|
-| 4 | Previous |
-| 5 | Play / pause |
-| 6 | Next |
-| 7 | Cycle Now Playing / Up Next / Sleep |
-| 8 | Cycle sleep timer: OFF / 15 / 30 / 60 minutes |
+| Q | Play / pause |
+| A | Previous |
+| D | Next |
+| W | Volume up |
+| S | Volume down |
+| 1–5 | Player / Add / Queue / Library / Playlists |
+| Enter | Activate focused control |
+| Esc | Return to Player |
+
+The browser's own keyboard shortcuts may take precedence for some keys depending on the installed Zero Browser version. The on-screen controls remain available.
+
+## Data and privacy
+
+- Local data: /var/lib/cloudzero/library.json, playlists.json, state.json.
+- These files contain public SoundCloud URLs, display metadata, queue and local playlist contents.
+- No passwords, API secrets, cookies or access tokens are collected or stored.
+- The service binds to loopback only and is not intended to be exposed to a network.
+- Uninstalling the package does not intentionally delete the local library.
 
 ## Build and validation
 
-GitHub Actions cross-compiles the app using the official CardputerZero template. A successful CI run confirms the ARM64 application compiles and packages; hardware playback and physical-key behavior still require testing on the actual device.
-
-## Security
-
-The local bridge is intended for a trusted home Wi-Fi network. Do not expose port 8765 to the public internet. Never commit SoundCloud credentials, OAuth tokens or browser session cookies.
+GitHub Actions cross-compiles the native launcher and packages the local service and UI. CI validates Python syntax and backend URL validation. SoundCloud Widget compatibility, audio output and keyboard behavior must still be tested on the physical Cardputer Zero; the browser engine and network playback are runtime dependencies.
