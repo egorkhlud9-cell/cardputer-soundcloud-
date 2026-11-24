@@ -1,72 +1,144 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#090909"><title>CloudZero</title><style>
-:root{color-scheme:dark;--orange:#ff5500;--panel:#141414;--line:#292929;--muted:#999}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 85% 0%,#291208 0,transparent 40%),#080808;color:#f5f5f5;font:15px system-ui;max-width:720px;padding:20px;margin-inline:auto}
-header{display:flex;align-items:center;justify-content:space-between;margin:4px 0 18px}h1{font-size:20px;letter-spacing:3px;color:var(--orange);margin:0}small,.muted{color:var(--muted)}.pill{border:1px solid #4a2618;border-radius:20px;padding:5px 9px;color:#ff8a4b;font-size:11px}
-.tabs{display:flex;gap:8px;margin:16px 0}.tab,button{border:1px solid var(--line);background:#191919;color:#eee;border-radius:11px;padding:11px 14px;font:inherit}.tab.active,button.primary{background:var(--orange);color:#090909;border-color:var(--orange);font-weight:750}
-.panel{background:linear-gradient(145deg,#191919,#101010);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0}
-.row{display:flex;gap:8px;align-items:center}.row>*{min-width:0;flex:1}input{width:100%;background:#090909;border:1px solid #383838;color:#fff;border-radius:11px;padding:13px;font:inherit;margin:8px 0}
-button{cursor:pointer}button:active{transform:scale(.98)}.track{display:flex;gap:14px;align-items:center}.art{width:84px;height:84px;object-fit:cover;background:#242424;border-radius:12px;border:1px solid #393939}.title{font-weight:750;font-size:16px;line-height:1.3}.meta{font-size:13px;color:var(--muted);margin-top:5px}.progress{width:100%;accent-color:var(--orange)}.time{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}
-iframe{width:100%;height:166px;border:0;border-radius:12px;margin-top:12px;background:#111}
-/* Motion language: subtle, low-noise, orange-accented. */
-@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pulse{0%,100%{opacity:.45;transform:scaleY(.55)}50%{opacity:1;transform:scaleY(1)}}
-@keyframes glow{0%,100%{box-shadow:0 0 0 rgba(255,85,0,0)}50%{box-shadow:0 0 20px rgba(255,85,0,.13)}}
-@keyframes shimmer{0%{background-position:-220% 0}100%{background-position:220% 0}}
-.panel{animation:rise .38s ease both;transition:border-color .2s,transform .2s}
-.panel:focus-within{border-color:#60321f}
-.tab,button{transition:background .18s,border-color .18s,color .18s,transform .18s}
-button:hover,.tab:hover{border-color:var(--orange);transform:translateY(-1px)}
-button.primary{animation:glow 3.8s ease-in-out infinite}
-.art{transition:transform .35s,filter .35s}
-body:has(#play.playing) .art{animation:glow 3s ease-in-out infinite}
-section:not(.hide){animation:rise .28s ease both}
-#connection{transition:all .25s}
-#queue .queue-row{cursor:pointer;transition:background .18s;padding-inline:8px;border-radius:7px}
-#queue .queue-row:hover{background:#21160f}
-input:focus{outline:1px solid var(--orange);border-color:var(--orange)}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
-.item{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #282828}.item:first-child{border-top:0}.item .meta{flex:1}.item button{padding:8px 10px;font-size:12px}.hide{display:none!important}.hint{font-size:12px;line-height:1.5;color:#888}.section-title{font-size:12px;letter-spacing:1.5px;color:#ff8a4b;margin:0 0 10px}.queue-row{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #282828;font-size:13px}
-</style></head><body>
-<header><div style="display:flex;align-items:center;gap:12px"><h1>CLOUDZERO</h1><span aria-hidden="true" style="display:flex;gap:3px;align-items:center;height:18px"><i style="width:3px;height:7px;background:#ff5500;border-radius:4px;animation:pulse .8s infinite"></i><i style="width:3px;height:13px;background:#ff5500;border-radius:4px;animation:pulse .8s .15s infinite"></i><i style="width:3px;height:9px;background:#ff5500;border-radius:4px;animation:pulse .8s .3s infinite"></i></span></div><span class="pill" id="connection">PHONE REMOTE</span></header>
-<div class="tabs"><button class="tab active" data-page="player">PLAYER</button><button class="tab" data-page="library">LIBRARY</button><button class="tab" data-page="search">SEARCH</button><button class="tab" data-page="account">ACCOUNT</button></div>
-<section id="player">
-<div class="panel">
-<div class="track"><img class="art" id="art" alt="" src=""><div><div class="title" id="title">Nothing playing</div><div class="meta" id="artist">Load a SoundCloud track or playlist</div></div></div>
-<div class="row" style="margin-top:14px"><button id="prev">PREV</button><button class="primary" id="play">PLAY / PAUSE</button><button id="next">NEXT</button></div>
-<div class="time"><span id="elapsed">0:00</span><span id="duration">0:00</span></div>
-<input class="progress" id="seek" type="range" min="0" max="1000" value="0">
-<div class="row"><button id="saveTrack">＋ SAVE TRACK</button><button id="savePlaylist">＋ SAVE LINK</button></div>
-<div class="row" style="margin-top:10px"><label class="muted" for="volume">VOLUME</label><input id="volume" type="range" min="0" max="100" value="75"></div>
-<iframe id="sc" allow="autoplay" scrolling="no" title="Official SoundCloud player"></iframe>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#090909"><title>CloudZero</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080808;color:#f5f5f5;font:12px Arial,sans-serif}
+:root{--o:#ff5500;--panel:#151515;--line:#303030;--muted:#858585}
+#app{height:100%;display:flex;flex-direction:column;background:radial-gradient(ellipse at 85% 0,#241006 0,transparent 48%),#080808}
+header{height:25px;min-height:25px;padding:4px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #252525}
+.brand{font-size:13px;letter-spacing:2px;font-weight:bold;color:var(--o)}#state{font-size:9px;color:#999}
+nav{height:25px;min-height:25px;display:flex;border-bottom:1px solid #282828}
+nav button{flex:1;border:0;border-right:1px solid #242424;border-radius:0;background:#101010;color:#777;font-size:9px;font-weight:bold;padding:0}
+nav button.active{color:var(--o);background:#21140e;box-shadow:inset 0 -2px var(--o)}
+main{position:relative;flex:1;min-height:0;overflow:hidden}
+.page{display:none;position:absolute;inset:0;overflow-y:auto;padding:7px 8px}
+.page.active{display:block;animation:appear .18s ease-out}
+@keyframes appear{from{opacity:.45;transform:translateY(3px)}to{opacity:1;transform:none}}
+.card{border:1px solid var(--line);background:linear-gradient(145deg,#171717,#101010);border-radius:8px;padding:8px;margin-bottom:6px}
+.kicker{font-size:9px;letter-spacing:1.5px;color:#ff8b4b;font-weight:bold;margin-bottom:6px}
+#tracktitle{font-size:14px;font-weight:bold;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#artist{font-size:10px;color:#999;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.transport{display:flex;gap:5px;margin-top:7px}.btn{background:#202020;border:1px solid #393939;color:#eee;border-radius:6px;height:25px;padding:0 9px;font-size:10px;font-weight:bold}
+.btn:focus,.field:focus{outline:1px solid var(--o);border-color:var(--o)}
+.btn.primary{background:var(--o);border-color:var(--o);color:#090909;flex:1}
+.btn.small{height:22px;padding:0 7px;font-size:9px}
+#progress{width:100%;height:4px;margin:7px 0 2px;accent-color:var(--o)}
+.times{display:flex;justify-content:space-between;color:#777;font-size:9px}
+.row{display:flex;gap:5px;align-items:center;margin:5px 0}.row>*{min-width:0}
+.field{width:100%;height:27px;background:#090909;border:1px solid #383838;border-radius:6px;color:#eee;padding:0 7px;font-size:11px}
+.row .field{flex:1}
+.hint{font-size:9px;line-height:1.35;color:#858585}
+.item{display:flex;align-items:center;gap:6px;padding:6px 2px;border-top:1px solid #282828;min-height:28px}
+.item:first-child{border-top:0}.item .info{flex:1;min-width:0}.item .name{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.item .sub{font-size:9px;color:#888;margin-top:2px}
+.empty{color:#777;font-size:10px;padding:10px 3px}
+footer{height:19px;min-height:19px;border-top:1px solid #252525;padding:3px 8px;display:flex;justify-content:space-between;color:#777;font-size:9px}
+#widget{position:absolute;width:1px;height:1px;left:-10px;top:-10px;border:0;opacity:.01}
+#toast{position:absolute;left:8px;right:8px;bottom:23px;padding:6px 8px;border:1px solid #623019;background:#1b100b;color:#ffad7d;border-radius:6px;font-size:10px;display:none}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+<header><div class="brand">CLOUDZERO <span style="color:#777;font-size:8px;letter-spacing:0"> / PLAYER</span></div><div id="state">STARTING</div></header>
+<nav>
+<button class="active" data-page="player">PLAY</button><button data-page="add">ADD</button><button data-page="queue">QUEUE</button><button data-page="library">LIB</button><button data-page="lists">LISTS</button>
+</nav>
+<main>
+<section class="page active" id="player">
+<div class="card">
+<div class="kicker">NOW PLAYING</div><div id="tracktitle">Nothing playing</div><div id="artist">Load a public SoundCloud track or playlist</div>
+<div class="transport"><button class="btn" id="prev">PREV</button><button class="btn primary" id="toggle">PLAY</button><button class="btn" id="next">NEXT</button></div>
+<input id="progress" type="range" min="0" max="1000" value="0">
+<div class="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div>
+<div class="row"><span class="hint">VOL</span><input id="volume" type="range" min="0" max="100" value="75" style="flex:1;accent-color:#ff5500"><span id="volval" class="hint">75%</span></div>
 </div>
-<div class="panel"><p class="section-title">UP NEXT</p><div id="queue" class="hint">Load a playlist to see its tracks here.</div></div>
+<div class="card"><div class="kicker">QUICK CONTROLS</div><div class="hint">Q PLAY/PAUSE · A PREVIOUS · D NEXT</div><div class="hint">W VOLUME + · S VOLUME − · 1–5 CHANGE TAB</div></div>
+<div class="hint">Plays public SoundCloud embeds on this Cardputer. No phone connection.</div>
 </section>
-<section id="library" class="hide"><div class="panel"><p class="section-title">YOUR CLOUDZERO LIBRARY</p><p class="hint">Saved on the Cardputer itself. Tracks and playlist links stay here after reboot.</p><div id="saved"></div></div></section>
-<section id="search" class="hide"><div class="panel"><p class="section-title">FIND SOMETHING TO PLAY</p><input id="query" placeholder="Track, artist or playlist"><button class="primary" id="searchBtn">SEARCH SOUNDCLOUD</button><p class="hint">Search opens SoundCloud's own results. Choose a track, copy its link, then paste it into the player below.</p><input id="url" placeholder="Paste a SoundCloud track or playlist URL"><button class="primary" id="load">LOAD / PLAY</button></div></section>
-<section id="account" class="hide"><div class="panel"><p class="section-title">YOUR SOUNDCLOUD</p><p class="hint">Open SoundCloud account pages in your browser. Sign in there to manage your real likes and playlists. CloudZero does not copy session cookies.</p><div class="row"><button id="likes">LIKED TRACKS ↗</button><button id="playlists">MY PLAYLISTS ↗</button></div><div class="row" style="margin-top:8px"><button id="profile">MY PROFILE ↗</button><button id="upload">MY TRACKS ↗</button></div><p class="hint">Use Player or Library to load and save individual SoundCloud links on the Cardputer.</p></div></section><p class="hint" id="status">Connect your phone and Cardputer to the same Wi-Fi. Playback uses SoundCloud's official embedded player.</p>
+<section class="page" id="add">
+<div class="card"><div class="kicker">LOAD PUBLIC SOUNDCLOUD LINK</div><input class="field" id="url" placeholder="https://soundcloud.com/artist/track"><div class="row"><button class="btn primary" id="load">LOAD & PLAY</button><button class="btn" id="save">SAVE</button></div><div class="row"><button class="btn" id="addqueue">ADD TO QUEUE</button><button class="btn" id="newlist">＋ NEW PLAYLIST</button></div></div>
+<div class="card"><div class="kicker">ABOUT SEARCH</div><div class="hint">SoundCloud currently requires approved API credentials for in-app catalogue search. This build does not scrape private endpoints or use account cookies. Paste a public track or playlist URL here. Local playlists and queue work offline.</div></div>
+</section>
+<section class="page" id="queue"><div class="card"><div class="kicker">UP NEXT</div><div id="queueitems" class="empty">Queue is empty.</div><div class="row"><button class="btn small" id="clearqueue">CLEAR QUEUE</button></div></div></section>
+<section class="page" id="library"><div class="card"><div class="kicker">SAVED ON THIS DEVICE</div><div id="libraryitems" class="empty">Library is empty.</div></div></section>
+<section class="page" id="lists"><div class="card"><div class="kicker">YOUR PLAYLISTS</div><div class="row"><input class="field" id="listname" placeholder="New playlist name"><button class="btn primary" id="create">CREATE</button></div><div id="playlistitems" class="empty">No playlists yet.</div></div></section>
+<iframe id="widget" title="SoundCloud audio engine" allow="autoplay"></iframe>
+<div id="toast"></div>
+</main>
+<footer><span>DEVICE PLAYER · LOCAL LIBRARY</span><span>ESC BACK</span></footer>
+</div>
 <script src="https://w.soundcloud.com/player/api.js"></script>
 <script>
-const $=id=>document.getElementById(id),frame=$('sc');let widget=null,ready=false,currentUrl='',currentSound=null,lastDuration=0;
-const fmt=n=>{n=Math.max(0,Math.floor((n||0)/1000));return Math.floor(n/60)+':'+String(n%60).padStart(2,'0')};
-function api(path,body){return fetch(path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{}).then(r=>r.json())}
-function setPage(name){document.querySelectorAll('section').forEach(s=>s.classList.toggle('hide',s.id!==name));document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.page===name));if(name==='library')refreshLibrary();}
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
-function saveItem(kind){if(!currentUrl)return $('status').textContent='Load a SoundCloud item first';const s=currentSound||{};api('/api/library/add',{kind,title:s.title||$('title').textContent,artist:s.user?.username||$('artist').textContent,url:currentUrl,artwork:s.artwork_url||''}).then(()=>{$('status').textContent='Saved to Cardputer library';refreshLibrary();}).catch(()=>{$('status').textContent='Could not save item';});}
-function refreshLibrary(){api('/api/library').then(items=>{const root=$('saved');root.innerHTML='';if(!items.length){root.textContent='Your library is empty.';return;}items.forEach((it,i)=>{const row=document.createElement('div');row.className='item';const info=document.createElement('div');info.className='meta';const strong=document.createElement('div');strong.className='title';strong.textContent=it.title;const sub=document.createElement('div');sub.textContent=(it.kind==='playlist'?'PLAYLIST':'TRACK')+' · '+(it.artist||'SoundCloud');info.append(strong,sub);const play=document.createElement('button');play.textContent='OPEN';play.onclick=()=>{setPage('player');$('url').value=it.url;loadItem(it.url);};const del=document.createElement('button');del.textContent='×';del.onclick=()=>api('/api/library/remove',{index:i}).then(refreshLibrary);row.append(info,play,del);root.append(row);});}).catch(()=>{$('saved').textContent='Library unavailable';});}
-function showQueue(sounds,index){const root=$('queue');root.innerHTML='';if(!sounds||!sounds.length){root.textContent='No queue available for this item.';return;}sounds.slice(0,12).forEach((s,i)=>{const row=document.createElement('div');row.className='queue-row';const label=document.createElement('span');label.textContent=(i===index?'▶ ':'')+(s.title||'Untitled');const artist=document.createElement('span');artist.className='muted';artist.textContent=s.user?.username||'';row.append(label,artist);row.onclick=()=>widget&&widget.skip(i);root.append(row);});}
-function publish(){if(!widget||!ready)return;widget.getCurrentSound(s=>{if(!s)return;currentSound=s;widget.getDuration(d=>widget.getPosition(p=>widget.isPaused(paused=>{lastDuration=d||0;const state={title:s.title||'Unknown track',artist:s.user?.username||'SoundCloud',artwork:s.artwork_url||'',duration:d||0,position:p||0,playing:!paused};$('title').textContent=state.title;$('artist').textContent=state.artist;$('art').src=(state.artwork||'').replace('-large','-t500x500');$('elapsed').textContent=fmt(state.position);$('duration').textContent=fmt(state.duration);$('seek').value=d?Math.round(p/d*1000):0;$('connection').textContent='CONNECTED';api('/api/state',state).catch(()=>{});})));widget.getSounds(sounds=>widget.getCurrentSoundIndex(index=>{const q=(sounds||[]).map(x=>({title:x.title||'',artist:x.user?.username||'',url:x.permalink_url||''}));api('/api/state',{queue:q}).catch(()=>{});showQueue(sounds,index||0);}));});}
-function bindWidget(){widget=SC.Widget(frame);widget.bind(SC.Widget.Events.READY,()=>{ready=true;$('status').textContent='SoundCloud player ready';publish();});['PLAY','PAUSE','FINISH','SEEK','PLAY_PROGRESS'].forEach(e=>widget.bind(SC.Widget.Events[e],publish));widget.bind(SC.Widget.Events.ERROR,()=>{$('status').textContent='SoundCloud could not play this item. Try another link.';});}
-function loadItem(u){u=(u||'').trim();if(!/^https?:\/\/(www\.)?soundcloud\.com\//i.test(u)){ $('status').textContent='Enter a valid soundcloud.com URL';return;}currentUrl=u;$('status').textContent='Loading SoundCloud…';const options={auto_play:true,color:'#ff5500',hide_related:true,show_comments:false,show_user:true,show_reposts:false,visual:true};if(widget&&ready){widget.load(u,options);return;}frame.src='https://w.soundcloud.com/player/?url='+encodeURIComponent(u)+'&color=%23ff5500&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&visual=true';if(!widget)bindWidget();else ready=false;}
-$('load').onclick=()=>loadItem($('url').value);$('play').onclick=()=>widget&&ready&&widget.toggle();$('prev').onclick=()=>widget&&ready&&widget.prev();$('next').onclick=()=>widget&&ready&&widget.next();$('saveTrack').onclick=()=>saveItem('track');$('savePlaylist').onclick=()=>saveItem('playlist');
-$('searchBtn').onclick=()=>{const q=$('query').value.trim();if(q)window.open('https://soundcloud.com/search/sounds?q='+encodeURIComponent(q),'_blank','noopener');};
-$('likes').onclick=()=>window.open('https://soundcloud.com/you/likes','_blank','noopener');
-$('playlists').onclick=()=>window.open('https://soundcloud.com/you/sets','_blank','noopener');
-$('profile').onclick=()=>window.open('https://soundcloud.com/you','_blank','noopener');
-$('upload').onclick=()=>window.open('https://soundcloud.com/you/tracks','_blank','noopener');
-$('volume').oninput=e=>widget&&ready&&widget.setVolume(Number(e.target.value));
-$('seek').onchange=e=>widget&&ready&&lastDuration&&widget.seekTo(lastDuration*Number(e.target.value)/1000);
-setInterval(()=>{if(widget&&ready)publish();api('/api/commands').then(a=>a.forEach(x=>{if(!widget||!ready)return;({play:()=>widget.play(),pause:()=>widget.pause(),toggle:()=>widget.toggle(),next:()=>widget.next(),previous:()=>widget.prev()})[x.command]?.();})).catch(()=>{});},1200);
-refreshLibrary();
-</script></body></html>
+(function(){
+var $=function(id){return document.getElementById(id);};
+var widget=null,ready=false,currentUrl="",currentSound=null,playing=false,duration=0,position=0,volume=75,queue=[],library=[],playlists=[],activeList=null,sleepTimer=null;
+function request(path,body,done){
+ var x=new XMLHttpRequest();x.open(body?"POST":"GET",path,true);if(body)x.setRequestHeader("Content-Type","application/json");
+ x.onreadystatechange=function(){if(x.readyState===4){var data={};try{data=JSON.parse(x.responseText||"{}");}catch(e){}if(done)done(x.status>=200&&x.status<300?null:(data.error||"Request failed"),data);}};
+ x.send(body?JSON.stringify(body):null);
+}
+function toast(s){var t=$("toast");t.innerHTML=s;t.style.display="block";window.setTimeout(function(){t.style.display="none";},2400);}
+function fmt(n){n=Math.max(0,Math.floor((n||0)/1000));return Math.floor(n/60)+":"+("0"+(n%60)).slice(-2);}
+function validUrl(s){return /^https?:\/\/([a-z0-9-]+\.)*soundcloud\.com\//i.test((s||"").replace(/^\s+|\s+$/g,""));}
+function page(name){var pages=document.getElementsByClassName("page"),tabs=document.querySelectorAll("nav button"),i;for(i=0;i<pages.length;i++)pages[i].className="page"+(pages[i].id===name?" active":"");for(i=0;i<tabs.length;i++)tabs[i].className=tabs[i].getAttribute("data-page")===name?"active":"";if(name==="queue")refreshQueue();if(name==="library")refreshLibrary();if(name==="lists")refreshPlaylists();}
+function publish(){
+ if(!widget||!ready)return;
+ widget.getCurrentSound(function(s){if(!s)return;currentSound=s;widget.getDuration(function(d){duration=d||0;widget.getPosition(function(p){position=p||0;widget.isPaused(function(paused){playing=!paused;$("tracktitle").innerHTML=escapeHtml(s.title||"Unknown track");$("artist").innerHTML=escapeHtml(s.user&&s.user.username||"SoundCloud");$("elapsed").innerHTML=fmt(position);$("duration").innerHTML=fmt(duration);$("progress").value=duration?Math.round(position/duration*1000):0;$("toggle").innerHTML=playing?"PAUSE":"PLAY";$("state").innerHTML=playing?"PLAYING":"PAUSED";});});});});
+}
+function escapeHtml(s){return String(s||"").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function widgetReady(){
+ if(ready)return;ready=true;widget=SC.Widget($("widget"));
+ widget.bind(SC.Widget.Events.READY,function(){ready=true;widget.setVolume(volume);$("state").innerHTML="READY";publish();});
+ widget.bind(SC.Widget.Events.PLAY,publish);widget.bind(SC.Widget.Events.PAUSE,publish);widget.bind(SC.Widget.Events.SEEK,publish);widget.bind(SC.Widget.Events.PLAY_PROGRESS,publish);
+ widget.bind(SC.Widget.Events.FINISH,function(){playing=false;playNextQueued();});
+ widget.bind(SC.Widget.Events.ERROR,function(){playing=false;$("state").innerHTML="UNAVAILABLE";toast("This track cannot be embedded. Try another public track.");});
+}
+function loadUrl(url,autoplay){
+ url=(url||"").replace(/^\s+|\s+$/g,"");if(!validUrl(url)){toast("Enter a public soundcloud.com link");return false;}
+ currentUrl=url;$("url").value=url;$("state").innerHTML="LOADING";
+ if(!ready){
+  $("widget").src="https://w.soundcloud.com/player/?url="+encodeURIComponent(url)+"&auto_play="+(autoplay?"true":"false")+"&hide_related=true&show_comments=false&show_user=true&visual=false&color=%23ff5500";
+  widgetReady();
+ }else{
+  widget.load(url,{auto_play:!!autoplay,hide_related:true,show_comments:false,show_user:true,visual:false,color:"#ff5500"},function(){widget.setVolume(volume);publish();});
+ }
+ return true;
+}
+function refreshQueue(){request("/api/queue",null,function(err,data){if(err)return;queue=data||[];var root=$("queueitems");root.innerHTML="";if(!queue.length){root.className="empty";root.innerHTML="Queue is empty.";return;}root.className="";for(var i=0;i<queue.length;i++){(function(item){var row=document.createElement("div");row.className="item";var info=document.createElement("div");info.className="info";info.innerHTML='<div class="name">'+escapeHtml(item.title)+'</div><div class="sub">'+escapeHtml(item.artist||"SoundCloud")+'</div>';var play=document.createElement("button");play.className="btn small";play.innerHTML="PLAY";play.onclick=function(){loadUrl(item.url,true);};var del=document.createElement("button");del.className="btn small";del.innerHTML="×";del.onclick=function(){request("/api/queue/remove",{id:item.id},refreshQueue);};row.appendChild(info);row.appendChild(play);row.appendChild(del);root.appendChild(row);})(queue[i]);}});}
+function refreshLibrary(){request("/api/library",null,function(err,data){if(err)return;library=data||[];var root=$("libraryitems");root.innerHTML="";if(!library.length){root.className="empty";root.innerHTML="Library is empty.";return;}root.className="";for(var i=0;i<library.length;i++){(function(item){var row=document.createElement("div");row.className="item";var info=document.createElement("div");info.className="info";info.innerHTML='<div class="name">'+escapeHtml(item.title)+'</div><div class="sub">'+escapeHtml(item.artist||"SoundCloud")+'</div>';var play=document.createElement("button");play.className="btn small";play.innerHTML="PLAY";play.onclick=function(){loadUrl(item.url,true);page("player");};var del=document.createElement("button");del.className="btn small";del.innerHTML="×";del.onclick=function(){request("/api/library/remove",{id:item.id},refreshLibrary);};row.appendChild(info);row.appendChild(play);row.appendChild(del);root.appendChild(row);})(library[i]);}});}
+function refreshPlaylists(){request("/api/playlists",null,function(err,data){if(err)return;playlists=data||[];var root=$("playlistitems");root.innerHTML="";if(!playlists.length){root.className="empty";root.innerHTML="No playlists yet.";return;}root.className="";for(var i=0;i<playlists.length;i++){(function(list){var row=document.createElement("div");row.className="item";var info=document.createElement("div");info.className="info";info.innerHTML='<div class="name">'+escapeHtml(list.name)+'</div><div class="sub">'+list.items.length+' tracks</div>';var open=document.createElement("button");open.className="btn small";open.innerHTML="OPEN";open.onclick=function(){showPlaylist(list);};var del=document.createElement("button");del.className="btn small";del.innerHTML="×";del.onclick=function(){request("/api/playlists/delete",{id:list.id},refreshPlaylists);};row.appendChild(info);row.appendChild(open);row.appendChild(del);root.appendChild(row);})(playlists[i]);}});}
+function showPlaylist(list){activeList=list;var root=$("playlistitems");root.innerHTML='<div class="kicker">'+escapeHtml(list.name)+'</div>';var back=document.createElement("button");back.className="btn small";back.innerHTML="BACK";back.onclick=refreshPlaylists;root.appendChild(back);for(var i=0;i<list.items.length;i++){(function(item){var row=document.createElement("div");row.className="item";var info=document.createElement("div");info.className="info";info.innerHTML='<div class="name">'+escapeHtml(item.title)+'</div><div class="sub">'+escapeHtml(item.artist||"SoundCloud")+'</div>';var play=document.createElement("button");play.className="btn small";play.innerHTML="PLAY";play.onclick=function(){loadUrl(item.url,true);page("player");};var del=document.createElement("button");del.className="btn small";del.innerHTML="×";del.onclick=function(){request("/api/playlists/remove",{id:list.id,track_id:item.id},function(){refreshPlaylists();});};row.appendChild(info);row.appendChild(play);row.appendChild(del);root.appendChild(row);})(list.items[i]);}}
+function currentMeta(){return {url:currentUrl,title:currentSound&&currentSound.title||"SoundCloud track",artist:currentSound&&currentSound.user&&currentSound.user.username||""};}
+function playNextQueued(){request("/api/queue",null,function(err,items){if(err||!items||!items.length){$("state").innerHTML="FINISHED";return;}var item=items[0];request("/api/queue/remove",{id:item.id},function(){loadUrl(item.url,true);refreshQueue();});});}
+function addCurrent(path){if(!currentUrl){toast("Load a track first");return;}var meta=currentMeta();request(path,meta,function(err){toast(err||"Saved on Cardputer");});}
+$("load").onclick=function(){if(loadUrl($("url").value,true))page("player");};
+$("save").onclick=function(){addCurrent("/api/library/add");};
+$("addqueue").onclick=function(){addCurrent("/api/queue/add");refreshQueue();toast("Added to queue");};
+$("newlist").onclick=function(){page("lists");$("listname").focus();};
+$("create").onclick=function(){var name=$("listname").value.replace(/^\s+|\s+$/g,"");if(!name){toast("Enter a playlist name");return;}request("/api/playlists/create",{name:name},function(err){if(err)toast(err);else{$("listname").value="";refreshPlaylists();toast("Playlist created");}});};
+$("prev").onclick=function(){if(widget&&ready)widget.prev();};
+$("next").onclick=function(){if(widget&&ready)widget.next();};
+$("toggle").onclick=function(){if(widget&&ready)widget.toggle();};
+$("volume").oninput=function(){volume=parseInt(this.value,10)||0;$("volval").innerHTML=volume+"%";if(widget&&ready)widget.setVolume(volume);};
+$("progress").onchange=function(){if(widget&&ready&&duration)widget.seekTo(Math.round(parseInt(this.value,10)*duration/1000));};
+$("clearqueue").onclick=function(){request("/api/queue/clear",{},function(){refreshQueue();toast("Queue cleared");});};
+var tabs=document.querySelectorAll("nav button");for(var ti=0;ti<tabs.length;ti++)tabs[ti].onclick=function(){page(this.getAttribute("data-page"));};
+document.addEventListener("keydown",function(e){
+ var target=e.target,tag=(target&&target.tagName||"").toLowerCase();if(tag==="input"||tag==="textarea")return;
+ var k=e.keyCode;
+ if(k===81){if(widget&&ready)widget.toggle();e.preventDefault();}
+ else if(k===65){if(widget&&ready)widget.prev();e.preventDefault();}
+ else if(k===68){if(widget&&ready)widget.next();e.preventDefault();}
+ else if(k===87){volume=Math.min(100,volume+5);$("volume").value=volume;$("volval").innerHTML=volume+"%";if(widget&&ready)widget.setVolume(volume);e.preventDefault();}
+ else if(k===83){volume=Math.max(0,volume-5);$("volume").value=volume;$("volval").innerHTML=volume+"%";if(widget&&ready)widget.setVolume(volume);e.preventDefault();}
+ else if(k>=49&&k<=53){var names=["player","add","queue","library","lists"];page(names[k-49]);e.preventDefault();}
+ else if(k===27){page("player");}
+});
+request("/api/state",null,function(err,data){if(!err&&data&&data.volume!==undefined){volume=data.volume;$("volume").value=volume;$("volval").innerHTML=volume+"%";}});
+refreshQueue();refreshLibrary();refreshPlaylists();
+window.setInterval(function(){if(widget&&ready)publish();},2500);
+})();
+</script>
+</body></html>
