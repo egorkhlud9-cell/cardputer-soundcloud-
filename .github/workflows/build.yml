@@ -27,6 +27,11 @@ jobs:
           python3 -m pip install --user --break-system-packages cmake==3.31.6
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
+      - name: Validate local backend
+        run: |
+          python3 -m py_compile bridge/server.py tests/test_backend.py
+          CLOUDZERO_DATA_DIR="$RUNNER_TEMP/cloudzero-test-data" python3 tests/test_backend.py
+
       - name: Fetch official CardputerZero template
         run: git clone --depth 1 https://github.com/CardputerZero/Template.git /tmp/cp0-template
 
@@ -50,7 +55,7 @@ jobs:
             -DAPP_NAME=CloudZero \
             -DAPP_DISPLAY_NAME=CloudZero \
             -DAPP_MAINTAINER="CloudZero contributors <noreply@users.noreply.github.com>" \
-            -DAPP_PACKAGE_DESCRIPTION="SoundCloud player and phone remote for CardputerZero" \
+            -DAPP_PACKAGE_DESCRIPTION="Standalone on-device public SoundCloud player for CardputerZero" \
             -DAPP_INSTALL_SYSTEMD_SERVICE=OFF
 
       - name: Compile
