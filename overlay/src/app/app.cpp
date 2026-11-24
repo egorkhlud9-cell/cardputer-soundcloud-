@@ -29,7 +29,7 @@ lv_obj_t *title_label=nullptr, *artist_label=nullptr, *status_label=nullptr;
 lv_obj_t *progress_bar=nullptr, *time_label=nullptr, *cover_mark=nullptr;
 lv_obj_t *page_label=nullptr, *sleep_label=nullptr;
 bool playing=false, connected=false;
-int page=0, sleep_minutes=0;
+int page=0, sleep_minutes=0, sleep_remaining=0;
 uint64_t last_poll=0;
 
 std::string http_request(const char* method, const char* path, const std::string& body="") {
@@ -80,7 +80,7 @@ void transport_event(lv_event_t* e){
     else if(cmd==1) command("toggle");
     else if(cmd==2) command("next");
     else if(cmd==3){page=(page+1)%3;}
-    else if(cmd==4){sleep_minutes=sleep_minutes==0?15:sleep_minutes==15?30:sleep_minutes==30?60:0;}
+    else if(cmd==4){sleep_minutes=sleep_minutes==0?15:sleep_minutes==15?30:sleep_minutes==30?60:0;sleep_remaining=sleep_minutes*60;}
 }
 lv_obj_t* button(lv_obj_t* p,const char* txt,int id,int w){
     auto* b=lv_button_create(p); lv_obj_set_size(b,w,25);
@@ -128,7 +128,7 @@ void build_page(){
         set_text(page_label,"SLEEP MODE");
         set_text(title_label,"Sleep timer");
         set_text(artist_label,"Tap TIMER to cycle  OFF / 15 / 30 / 60 min");
-        char b[48];std::snprintf(b,sizeof(b),"Timer: %s",sleep_minutes?std::to_string(sleep_minutes).append(" min").c_str():"OFF");
+        char b[48];std::snprintf(b,sizeof(b),"Timer: %s",sleep_minutes?std::to_string(sleep_remaining/60).append(" min").c_str():"OFF");
         set_text(sleep_label,b);
         lv_obj_add_flag(progress_bar,LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(time_label,LV_OBJ_FLAG_HIDDEN);
