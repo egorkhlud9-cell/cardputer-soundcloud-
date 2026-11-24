@@ -31,6 +31,9 @@ jobs:
           cp overlay/src/app/app.cpp /tmp/cp0-template/src/app/app.cpp
           cp overlay/src/app/app.h /tmp/cp0-template/src/app/app.h
           cp app-builder.json /tmp/cp0-template/app-builder.json
+          cp cmake/cm0-package.cmake /tmp/cp0-template/cmake/cm0-package.cmake
+          mkdir -p /tmp/cp0-template/bridge
+          cp bridge/server.py bridge/index.html bridge/cloudzero-bridge.service /tmp/cp0-template/bridge/
           cp README.md /tmp/cp0-template/README.md
           sed -i 's/project(template_app VERSION 0.2.1/project(cloudzero VERSION 0.1.0/' /tmp/cp0-template/CMakeLists.txt
 
