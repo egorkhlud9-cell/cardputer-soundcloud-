@@ -1,15 +1,27 @@
 [Unit]
-Description=CloudZero SoundCloud phone bridge
+Description=CloudZero on-device player UI and local library
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
+DynamicUser=yes
 StateDirectory=cloudzero
 StateDirectoryMode=0750
+Environment=CLOUDZERO_DATA_DIR=/var/lib/cloudzero
 ExecStart=/usr/bin/python3 /usr/lib/cloudzero/server.py
 Restart=on-failure
 RestartSec=3
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectHome=yes
+ProtectSystem=strict
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
 
 [Install]
 WantedBy=multi-user.target
