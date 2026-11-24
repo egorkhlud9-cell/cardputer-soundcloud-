@@ -14,7 +14,7 @@ import time
 import uuid
 
 ROOT = Path("/usr/share/cloudzero/web")
-DATA = Path("/var/lib/cloudzero")
+DATA = Path(os.environ.get("CLOUDZERO_DATA_DIR", "/var/lib/cloudzero"))
 DATA.mkdir(parents=True, exist_ok=True)
 try:
     os.chmod(DATA, 0o750)
