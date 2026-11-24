@@ -207,7 +207,7 @@ class UI:
         self.image.paste(BG, (0, 0))
         self.drawctx = ImageDraw.Draw(self.image)
         d = self.drawctx
-        self._header(section)
+        self._header(section, "INPUT OK" if self.devices else "NO KEYS")
         if section == "Home":
             self._text("YOUR SOUNDTRACK.", 9, 31, self.hero, WHITE)
             self._text("Discover and play. No login required.", 10, 54, self.small, MUTED)
