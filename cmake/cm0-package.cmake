@@ -50,11 +50,8 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets/images/"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/${APP_NAME}/images"
     PATTERN ".DS_Store" EXCLUDE
 )
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets/images/"
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/APPLaunch/share/images"
-    FILES_MATCHING
-    PATTERN "template*.png"
-)
+# Do not install assets into APPLaunch shared directories: those files are owned
+# by brucecardputerzero (and other system packages). Keep CloudZero assets private.
 
 install(FILES "${APP_GENERATED_DIR}/${PROJECT_NAME}.desktop"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/APPLaunch/applications"
