@@ -24,12 +24,14 @@ Direct native playback and full account synchronization require an approved Soun
 
 ## Install
 
-1. Download the latest cloudzero-cardputerzero-arm64 Debian artifact from GitHub Actions.
-2. Install it on Cardputer Zero with dpkg.
-3. The package enables and starts cloudzero-bridge.service automatically.
-4. Connect the phone and Cardputer to the same Wi-Fi.
-5. Open http://CARDPUTER_IP:8765 in the phone browser.
-6. Load a SoundCloud URL and use the Cardputer keyboard to control it.
+On Cardputer Zero, once the latest CI build has published the release asset, install with:
+
+```bash
+curl -fL https://github.com/egorkhlud9-cell/cardputer-soundcloud-/releases/download/cloudzero-latest/CloudZero_0.1.0_rev1_arm64.deb -o /tmp/cloudzero.deb
+sudo apt-get install -y /tmp/cloudzero.deb
+```
+
+The package enables and starts cloudzero-bridge.service automatically. Connect the phone and Cardputer to the same Wi-Fi, then open `http://CARDPUTER_IP:8765` in the phone browser. Load a SoundCloud URL and use the Cardputer keyboard to control it.
 
 ## Keyboard
 
