@@ -1,44 +1,30 @@
-# SoundCloud integration
+# SoundCloud API and account synchronization
 
-CloudZero is designed to run on the Cardputer Zero itself. The native launcher opens the local CloudZero interface in Zero Browser's QtWebKit engine. The UI uses SoundCloud's documented HTML5 Widget API for public track and playlist playback.
+The native player uses SoundCloud's documented Web API. User account access is implemented with OAuth 2.1 Authorization Code + PKCE; the player does not collect passwords or browser cookies.
 
-## Current standalone architecture
+## OAuth setup
+1. Register an API application in SoundCloud's developer settings. SoundCloud's current registration guide requires Artist Pro to obtain API credentials.
+2. Configure the registered redirect URI as `http://127.0.0.1:8765/callback`.
+3. Enter the resulting Client ID and Client Secret in the player's Settings.
+4. Select Connect. The player opens the system browser for consent and receives the callback on loopback.
+5. The access token and rotating refresh token are stored in `~/.config/soundcloud-cardputer/config.json` with owner-only permissions (0600).
 
-- The Cardputer hosts the local UI and backend at 127.0.0.1:8765.
-- SoundCloud's official Widget is embedded invisibly inside the CloudZero interface.
-- Playback controls are issued by the Widget API: play, pause, toggle, previous, next, seekTo and setVolume.
-- The Cardputer's browser engine handles network media playback and sends audio through the device audio system.
-- Queue, saved links and user-created CloudZero playlists are stored locally on the device.
-- No phone, phone browser, remote-control server or account cookie is needed.
+The OAuth state value is checked and PKCE S256 is used. Refresh tokens are replaced after successful refresh. Disconnect clears the local token set.
 
-## Public Widget playback
+## Synchronization
+The connected account can load:
+- Profile: `GET /me`
+- Liked tracks: `GET /me/likes/tracks`
+- Playlists: `GET /me/playlists`
+- Uploaded tracks: `GET /me/tracks`
+- Playlist contents: `GET /playlists/{playlist_urn}/tracks`
 
-The Widget API accepts a public SoundCloud track or playlist URL through its load method. It exposes playback state, current sound metadata, duration, position, queue contents and volume. It does not provide a general catalogue-search method or private account-library API.
+Pagination follows `next_href`. Local copies are stored in `~/.config/soundcloud-cardputer/library.json`. Private content is requested only through the user's own OAuth authorization; inaccessible or unplayable items return the API's error.
 
-CloudZero therefore accepts public SoundCloud links. A full in-app catalogue search, account likes, private playlists and account synchronization are not implemented in this build.
+## Playback
+When an authenticated stream endpoint is available, MPV plays the returned stream URL. For public SoundCloud tracks, yt-dlp is used as a resolver fallback. This does not bypass private-track permissions or blocked content.
 
-## API credentials and account security
-
-The documented SoundCloud Web API uses OAuth for user-scoped API operations and app credentials for API access. Current developer registration requirements may restrict who can register an application and obtain those credentials. This project does not try to work around those requirements.
-
-Zero Browser's QtWebKit engine is experimental and based on an old WebKit revision. It is not suitable for entering passwords or handling sensitive account information. CloudZero does not request or store SoundCloud passwords, browser cookies, OAuth access tokens, refresh tokens, client secrets or other account credentials.
-
-## Device storage
-
-The backend stores only local player state and public URLs:
-- /var/lib/cloudzero/library.json
-- /var/lib/cloudzero/playlists.json
-- /var/lib/cloudzero/state.json
-
-The service binds to 127.0.0.1 only. It is not a LAN server and must not be exposed to the public internet.
-
-## Official references
-
-- https://developers.soundcloud.com/docs/api/html5-widget.html
-- https://developers.soundcloud.com/docs/api/guide
-- https://developers.soundcloud.com/docs/api/register-app
-- https://docs.m5stack.com/en/CardputerZero
-
-## Runtime validation still required
-
-CI can verify that the native launcher compiles, the Python backend parses and URL validation tests pass. Only the physical Cardputer Zero can confirm that the installed QtWebKit revision loads the current SoundCloud Widget, that a selected public track is playable, and that audio reaches the built-in speaker or 3.5 mm output.
+## References
+- https://developers.soundcloud.com/docs
+- https://developers.soundcloud.com/docs/api/explorer/
+- https://developers.soundcloud.com/docs/api/register-app.html

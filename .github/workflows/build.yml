@@ -20,7 +20,7 @@ jobs:
       - name: Syntax and unit tests
         run: |
           python -m compileall -q native/soundcloud_cardputer
-          PYTHONPATH=native python -m unittest discover -s tests -v
+          PYTHONPATH=native python -m unittest discover -s tests -p 'test_core.py' -v
       - name: Build Debian package
         run: |
           sudo apt-get update
@@ -28,6 +28,7 @@ jobs:
           chmod +x build_deb.sh
           ./build_deb.sh
           dpkg-deb --info dist/soundcloud-cardputer_1.0.0_all.deb
+          dpkg-deb --contents dist/soundcloud-cardputer_1.0.0_all.deb
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:

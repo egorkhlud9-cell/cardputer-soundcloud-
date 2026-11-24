@@ -1,0 +1,11 @@
+{
+  "id": "soundcloud-cardputer",
+  "name": "SoundCloud",
+  "version": "1.0.0",
+  "description": "Native 320x170 SoundCloud player for Cardputer Zero using Pygame/SDL2 and MPV.",
+  "entrypoint": "/usr/bin/soundcloud-cardputer",
+  "runtime": "python3",
+  "dependencies": ["python3-pygame", "mpv", "yt-dlp"],
+  "display": {"width": 320, "height": 170, "orientation": "landscape"},
+  "permissions": {"network": true, "audio": true, "filesystem": "user-config-only"}
+}
