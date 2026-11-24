@@ -2,6 +2,7 @@
 set -eu
 export PYTHONUNBUFFERED=1
 export SDL_VIDEO_WINDOW_POS=0,0
+export PYTHONPATH="/opt/soundcloud-cardputer${PYTHONPATH:+:$PYTHONPATH}"
 # Cardputer Zero images may expose the panel through fbcon or KMSDRM.
 if [ -e /dev/fb0 ] && [ -z "${SDL_VIDEODRIVER:-}" ]; then
   export SDL_VIDEODRIVER=fbcon

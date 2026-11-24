@@ -4,7 +4,7 @@ Section: sound
 Priority: optional
 Architecture: all
 Maintainer: Egor <egorkhlud9-cell@users.noreply.github.com>
-Depends: python3 (>= 3.11), python3-pygame, mpv, yt-dlp, python3-requests
+Depends: python3 (>= 3.11), python3-pygame, mpv, yt-dlp
 Description: Native SoundCloud player for Cardputer Zero
  Native SDL/Pygame interface with MPV audio playback, SoundCloud OAuth 2.1
  PKCE sign-in, account library synchronization and local playlists.

@@ -3,6 +3,6 @@ Type=Application
 Name=SoundCloud
 Comment=Native SoundCloud music player
 Exec=/usr/bin/soundcloud-cardputer
-Icon=audio-x-generic
+Icon=soundcloud-cardputer
 Terminal=false
 Categories=AudioVideo;Audio;Player;
