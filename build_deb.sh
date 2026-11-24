@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+OUT="$ROOT/dist"
+PKG="$OUT/soundcloud-cardputer"
+rm -rf "$OUT"
+mkdir -p "$PKG/DEBIAN" "$PKG/opt/soundcloud-cardputer" "$PKG/usr/bin" "$PKG/usr/share/applications"
+cp "$ROOT/packaging/DEBIAN/control" "$PKG/DEBIAN/control"
+cp "$ROOT/packaging/DEBIAN/postinst" "$PKG/DEBIAN/postinst"
+cp "$ROOT/packaging/DEBIAN/prerm" "$PKG/DEBIAN/prerm"
+cp "$ROOT/packaging/usr/bin/soundcloud-cardputer" "$PKG/usr/bin/soundcloud-cardputer"
+cp "$ROOT/packaging/usr/share/applications/soundcloud-cardputer.desktop" "$PKG/usr/share/applications/"
+cp "$ROOT/native/launch.sh" "$PKG/opt/soundcloud-cardputer/launch.sh"
+cp -R "$ROOT/native/soundcloud_cardputer" "$PKG/opt/soundcloud-cardputer/"
+chmod 755 "$PKG/DEBIAN/postinst" "$PKG/DEBIAN/prerm" "$PKG/usr/bin/soundcloud-cardputer" "$PKG/opt/soundcloud-cardputer/launch.sh"
+chmod 644 "$PKG/DEBIAN/control" "$PKG/usr/share/applications/soundcloud-cardputer.desktop"
+dpkg-deb --root-owner-group --build "$PKG" "$OUT/soundcloud-cardputer_1.0.0_all.deb"
+echo "Built: $OUT/soundcloud-cardputer_1.0.0_all.deb"

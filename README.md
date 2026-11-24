@@ -1,63 +1,48 @@
-# CloudZero
+# SoundCloud Cardputer — Native Player
 
-CloudZero is an independent, on-device music player shell for M5Stack Cardputer Zero. The UI, queue, saved library and user-created playlists run locally on the Cardputer. A phone is not part of playback.
+A native Linux player for Cardputer Zero. The player UI is Pygame/SDL2; audio is handled by MPV. It does not embed a browser, WebView, iframe, Electron, or phone-based playback bridge.
 
-## What this build does
+## Features
+- 320×170 landscape interface designed for the Cardputer display.
+- MPV audio playback with play/pause, seeking and volume controls.
+- SoundCloud OAuth 2.1 Authorization Code + PKCE.
+- Account sync: profile, liked tracks, playlists and uploaded tracks.
+- Search, favorites, playlist browsing, recently played history.
+- Public track playback fallback through the installed yt-dlp resolver.
+- Local configuration and library under `~/.config/soundcloud-cardputer/`; config files are created with owner-only permissions.
+- Debian package build with GitHub Actions.
 
-- Launches a custom CloudZero interface on the Cardputer display using the installed Zero Browser QtWebKit engine.
-- Uses SoundCloud's official HTML5 Widget API as the playback engine for public tracks and playlists.
-- Plays audio on the Cardputer itself through the system audio output (speaker or 3.5 mm output), subject to the device's audio configuration.
-- Controls play/pause, previous/next, seek and widget volume.
-- Stores a local saved library, queue and user-created playlists under /var/lib/cloudzero/.
-- Starts its local-only service automatically when the package is installed.
-- Does not require the phone companion, a phone browser, or a phone-to-Cardputer connection.
+## Important: SoundCloud API credentials
+SoundCloud requires each API client to have its own Client ID and Client Secret. Its current registration guide says API app registration requires Artist Pro. Do not put credentials in this repository. Open Settings in the player and enter your own values. The app stores them locally with file mode 0600.
 
-## Honest SoundCloud limitations
+Register this exact redirect URI in your SoundCloud application settings:
+`http://127.0.0.1:8765/callback`
 
-This project deliberately uses the documented SoundCloud Widget. It does not scrape private endpoints, copy browser cookies, steal session tokens, or bypass track restrictions.
+The OAuth login opens the system's external browser and receives the authorization response through a local loopback callback. The player never embeds a browser. SoundCloud OAuth uses PKCE; access tokens are refreshed automatically. If SoundCloud changes API permissions or your app is not approved for a scope, the player reports the API error instead of faking sync.
 
-Without an approved SoundCloud API application, CloudZero cannot provide a native in-app SoundCloud catalogue search or synchronize private account data such as likes and private playlists. SoundCloud's current developer registration requirements restrict creation of API credentials. This build therefore accepts public SoundCloud track/playlist links and lets you organize them into CloudZero-local playlists. Those playlists are stored on the Cardputer, not in your SoundCloud account.
+## Install dependencies (Debian 13 / Cardputer Zero)
+The .deb declares these runtime dependencies: `python3`, `python3-pygame`, `mpv`, `yt-dlp`, and `python3-requests`.
 
-The embedded player is official SoundCloud playback, not an independently implemented decoder. The custom CloudZero interface surrounds and controls it; the browser engine must remain installed. The device must have Wi-Fi for online playback.
+## Build
+```sh
+./build_deb.sh
+```
+Output: `dist/soundcloud-cardputer_1.0.0_all.deb`
 
-## Browser requirement and security
-
-CloudZero launches the command zero-browser --mode qtwebkit. Install the Cardputer Zero Zero Browser application first. Its QtWebKit engine is experimental and based on an old WebKit revision. It is not suitable for logging into accounts, entering passwords, or handling sensitive information. CloudZero does not ask for SoundCloud credentials and does not store cookies or OAuth tokens. Only load public SoundCloud links.
-
-If Zero Browser is unavailable, the CloudZero launcher exits with a clear error instead of silently falling back to the phone remote.
-
-## Install
-
-The package is built for ARM64 Debian on Cardputer Zero. On the device, run:
-
-    curl -fL https://github.com/egorkhlud9-cell/cardputer-soundcloud-/releases/download/cloudzero-latest/CloudZero_0.2.0_rev1_arm64.deb -o /tmp/cloudzero.deb && sudo apt-get install -y /tmp/cloudzero.deb
-
-Open CloudZero from APPLaunch. The cloudzero-bridge.service local application server is enabled automatically. The UI is served only on 127.0.0.1:8766; it is not exposed to the LAN.
+GitHub Actions builds the package on pushes and pull requests. A tagged release `v1.0.0` publishes the .deb.
 
 ## Controls
+- Up / Down: move through lists
+- Enter: open / play / select
+- Space: pause / resume
+- Left / Right (Now Playing): seek ±10 seconds
+- + / -: volume
+- R: refresh current section
+- Esc / Backspace: back
+- Settings: C connect, S sync
 
-| Key | Action |
-|---|---|
-| Q | Play / pause |
-| W | Previous |
-| E | Next |
-| A | Mute |
-| S | Volume down |
-| D | Volume up |
-| 1–5 | Player / Add / Queue / Library / Playlists |
-| Enter | Activate focused control |
-| Esc | Return to Player |
-
-The browser's own keyboard shortcuts may take precedence for some keys depending on the installed Zero Browser version. The on-screen controls remain available.
-
-## Data and privacy
-
-- Local data: /var/lib/cloudzero/library.json, playlists.json, state.json.
-- These files contain public SoundCloud URLs, display metadata, queue and local playlist contents.
-- No passwords, API secrets, cookies or access tokens are collected or stored.
-- The service binds to loopback only and is not intended to be exposed to a network.
-- Uninstalling the package does not intentionally delete the local library.
-
-## Build and validation
-
-GitHub Actions cross-compiles the native launcher and packages the local service and UI. CI validates Python syntax and backend URL validation. SoundCloud Widget compatibility, audio output and keyboard behavior must still be tested on the physical Cardputer Zero; the browser engine and network playback are runtime dependencies.
+## Current implementation notes
+- Account endpoints require a valid user OAuth token and registered API credentials.
+- Playback may be unavailable for tracks marked blocked or preview-only by SoundCloud.
+- The fallback resolver only handles public URLs supported by yt-dlp; it does not bypass private-track permissions.
+- No passwords, browser cookies, or session cookies are collected.
