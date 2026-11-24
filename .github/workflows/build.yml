@@ -46,7 +46,7 @@ jobs:
           mkdir -p /tmp/cp0-template/packaging
           cp packaging/postinst packaging/prerm /tmp/cp0-template/packaging/
           cp README.md /tmp/cp0-template/README.md
-          sed -i 's/project(template_app VERSION 0.2.1/project(cloudzero VERSION 0.1.0/' /tmp/cp0-template/CMakeLists.txt
+          sed -i 's/project(template_app VERSION 0.2.1/project(cloudzero VERSION 0.2.0/' /tmp/cp0-template/CMakeLists.txt
 
       - name: Configure ARM64 build
         working-directory: /tmp/cp0-template
