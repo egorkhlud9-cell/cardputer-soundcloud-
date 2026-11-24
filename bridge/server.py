@@ -229,4 +229,4 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
 if __name__ == "__main__":
-    ThreadingHTTPServer(("127.0.0.1", 8765), Handler).serve_forever()
+    ThreadingHTTPServer(("127.0.0.1", 8766), Handler).serve_forever()
