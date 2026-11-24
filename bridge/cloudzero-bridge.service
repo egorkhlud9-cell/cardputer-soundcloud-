@@ -5,6 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+StateDirectory=cloudzero
+StateDirectoryMode=0750
 ExecStart=/usr/bin/python3 /usr/lib/cloudzero/server.py
 Restart=on-failure
 RestartSec=3
