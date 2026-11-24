@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SoundCloud
+Comment=Native SoundCloud music player
+Exec=/usr/bin/soundcloud-cardputer
+Icon=soundcloud-cardputer
+Terminal=false
+Categories=AudioVideo;Audio;Player;

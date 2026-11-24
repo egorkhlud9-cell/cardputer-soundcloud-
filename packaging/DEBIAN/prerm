@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+pkill -f 'soundcloud_cardputer.main' 2>/dev/null || true
+exit 0
