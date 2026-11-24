@@ -50,6 +50,7 @@ class UI:
             try:
                 d=InputDevice(path); caps=d.capabilities().get(ecodes.EV_KEY,[])
                 if ecodes.KEY_ENTER in caps and ecodes.KEY_UP in caps and ecodes.KEY_DOWN in caps:
+                    d.set_blocking(False)
                     return d
                 d.close()
             except Exception: pass
@@ -75,12 +76,19 @@ class UI:
         return mapping.get(code)
 
     def _unicode(self,code,shift):
-        if ecodes.KEY_A <= code <= ecodes.KEY_Z:
-            c=chr(ord("a")+code-ecodes.KEY_A); return c.upper() if shift else c
-        if ecodes.KEY_1 <= code <= ecodes.KEY_9: return "123456789"[code-ecodes.KEY_1] if not shift else "!@#$%^&*("[code-ecodes.KEY_1]
+        letters=[ecodes.KEY_Q,ecodes.KEY_W,ecodes.KEY_E,ecodes.KEY_R,ecodes.KEY_T,ecodes.KEY_Y,ecodes.KEY_U,ecodes.KEY_I,ecodes.KEY_O,ecodes.KEY_P,
+                 ecodes.KEY_A,ecodes.KEY_S,ecodes.KEY_D,ecodes.KEY_F,ecodes.KEY_G,ecodes.KEY_H,ecodes.KEY_J,ecodes.KEY_K,ecodes.KEY_L,
+                 ecodes.KEY_Z,ecodes.KEY_X,ecodes.KEY_C,ecodes.KEY_V,ecodes.KEY_B,ecodes.KEY_N,ecodes.KEY_M]
+        chars="qwertyuiopasdfghjklzxcvbnm"
+        if code in letters:
+            ch=chars[letters.index(code)]
+            return ch.upper() if shift else ch
+        digits=[ecodes.KEY_1,ecodes.KEY_2,ecodes.KEY_3,ecodes.KEY_4,ecodes.KEY_5,ecodes.KEY_6,ecodes.KEY_7,ecodes.KEY_8,ecodes.KEY_9]
+        if code in digits:
+            return "123456789"[digits.index(code)] if not shift else "!@#$%^&*("[digits.index(code)]
         if code==ecodes.KEY_0: return ")" if shift else "0"
         if code==ecodes.KEY_SPACE: return " "
-        if code in (ecodes.KEY_DOT,): return ">" if shift else "."
+        if code==ecodes.KEY_DOT: return ">" if shift else "."
         if code==ecodes.KEY_COMMA: return "<" if shift else ","
         if code==ecodes.KEY_MINUS: return "_" if shift else "-"
         if code==ecodes.KEY_SLASH: return "?" if shift else "/"
