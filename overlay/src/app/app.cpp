@@ -31,7 +31,7 @@ lv_obj_t *page_label=nullptr,*detail_label=nullptr,*eq[3]={nullptr,nullptr,nullp
 lv_obj_t *play_button_label=nullptr;
 bool playing=false,connected=false;
 int queue_count=0,library_count=0,page=0,sleep_minutes=0,sleep_remaining=0;
-uint32_t last_poll=0,last_second=0;
+uint32_t last_poll=0,last_second=0;\nint rendered_page=-1,rendered_queue=-1,rendered_sleep=-1,rendered_library=-1;
 std::string last_title;
 
 std::string http_request(const char* method,const char* path,const std::string& body="") {
@@ -150,7 +150,7 @@ void render_page(){
       set_text(artist_label,"Edit the queue from the phone remote");
       set_text(detail_label,"NEXT TRACKS  /  SOUNDCloud");
       set_text(status_label,"5 = PLAY/PAUSE   7 = NEXT VIEW");
-    }else{
+    }else if(page==2){
       set_text(page_label,"SLEEP MODE");
       lv_obj_add_flag(cover,LV_OBJ_FLAG_HIDDEN);lv_obj_add_flag(progress_bar,LV_OBJ_FLAG_HIDDEN);
       lv_obj_add_flag(time_label,LV_OBJ_FLAG_HIDDEN);
@@ -158,6 +158,14 @@ void render_page(){
       set_text(artist_label,"Playback pauses when the timer ends");
       set_text(detail_label,sleep_minutes?("SLEEP TIMER  /  "+std::to_string(sleep_remaining/60)+" MIN LEFT").c_str():"SLEEP TIMER  /  OFF");
       set_text(status_label,"8 = CYCLE TIMER  /  OFF · 15 · 30 · 60");
+    }else{
+      set_text(page_label,"LIBRARY");
+      lv_obj_add_flag(cover,LV_OBJ_FLAG_HIDDEN);lv_obj_add_flag(progress_bar,LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(time_label,LV_OBJ_FLAG_HIDDEN);
+      set_text(title_label,library_count?std::to_string(library_count)+" SAVED ITEMS":"YOUR LIBRARY IS EMPTY");
+      set_text(artist_label,"Saved tracks and playlists stay on this device");
+      set_text(detail_label,"LIBRARY  /  MANAGE FROM PHONE REMOTE");
+      set_text(status_label,"7 = CHANGE SCREEN");
     }
     fade_in(title_label);fade_in(detail_label);
 }
