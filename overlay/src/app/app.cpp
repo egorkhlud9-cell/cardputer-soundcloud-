@@ -28,7 +28,7 @@ namespace {
 lv_obj_t *title_label=nullptr, *artist_label=nullptr, *status_label=nullptr;
 lv_obj_t *progress_bar=nullptr, *time_label=nullptr, *cover_mark=nullptr;
 lv_obj_t *page_label=nullptr, *sleep_label=nullptr;
-bool playing=false, connected=false;
+bool playing=false, connected=false;\nint queue_count=0;
 int page=0, sleep_minutes=0, sleep_remaining=0;
 uint64_t last_poll=0;
 
@@ -97,7 +97,7 @@ void poll_state(){
     connected=true;
     std::string title=json_string(j,"title","Nothing playing");
     std::string artist=json_string(j,"artist","Choose a track on your phone");
-    playing=json_bool(j,"playing");
+    playing=json_bool(j,"playing");\n    queue_count=(int)json_number(j,"queue_count");
     double pos=json_number(j,"position"), dur=json_number(j,"duration");
     set_text(title_label,title);set_text(artist_label,artist);
     set_text(status_label,playing?"●  PLAYING   /   PHONE LINKED":"Ⅱ  PAUSED   /   PHONE LINKED");
