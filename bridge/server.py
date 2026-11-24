@@ -17,7 +17,7 @@ ROOT = Path("/usr/share/cloudzero/web")
 DATA = Path(os.environ.get("CLOUDZERO_DATA_DIR", "/var/lib/cloudzero"))
 DATA.mkdir(parents=True, exist_ok=True)
 try:
-    os.chmod(DATA, 0o750)
+    os.chmod(DATA, 0o700)
 except OSError:
     pass
 LOCK = threading.RLock()
@@ -39,7 +39,7 @@ def read_json(path, fallback):
 def write_json(path, value):
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
-    os.chmod(tmp, 0o640)
+    os.chmod(tmp, 0o600)
     tmp.replace(path)
 
 def valid_sc_url(value):
@@ -57,6 +57,10 @@ def clean_text(value, limit=180):
 
 LIBRARY = read_json(LIBRARY_FILE, [])
 PLAYLISTS = read_json(PLAYLIST_FILE, [])
+if not isinstance(LIBRARY, list):
+    LIBRARY = []
+if not isinstance(PLAYLISTS, list):
+    PLAYLISTS = []
 _saved = read_json(STATE_FILE, {})
 if isinstance(_saved, dict):
     STATE.update({k: v for k, v in _saved.items() if k in STATE})
