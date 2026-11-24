@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CloudZero Remote</title><style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#090909;color:#eee;font:15px system-ui;max-width:620px;padding:22px;margin-inline:auto}
+h1{font-size:18px;letter-spacing:2px;color:#ff5500}p,.muted{color:#999}input,button{font:inherit;border-radius:12px;border:1px solid #333;background:#171717;color:#eee;padding:13px}
+input{width:100%;margin:12px 0}button{cursor:pointer}button.primary{background:#ff5500;color:#090909;border:0;font-weight:700}
+.row{display:flex;gap:9px;margin:12px 0}.row button{flex:1}.card{background:#141414;border:1px solid #292929;border-radius:18px;padding:16px;margin-top:18px}
+iframe{width:100%;height:166px;border:0;border-radius:12px;margin-top:14px}.track{display:flex;gap:14px;align-items:center}.art{width:76px;height:76px;object-fit:cover;background:#222;border-radius:10px}.title{font-weight:700}.muted{font-size:13px}
+</style></head><body>
+<h1>CLOUDZERO <span class="muted">/ SOUNDCLOUD</span></h1>
+<p>Paste a SoundCloud track or playlist link. Playback uses SoundCloud's official player.</p>
+<input id="url" placeholder="https://soundcloud.com/artist/track">
+<button class="primary" id="load">LOAD TRACK / PLAYLIST</button>
+<div class="card"><div class="track"><img class="art" id="art" alt="" src=""><div><div class="title" id="title">Nothing playing</div><div class="muted" id="artist">Waiting for a link</div></div></div>
+<div class="row"><button id="prev">PREV</button><button class="primary" id="play">PLAY / PAUSE</button><button id="next">NEXT</button></div>
+<div class="muted" id="time">--:-- / --:--</div>
+<iframe id="sc" allow="autoplay" scrolling="no"></iframe></div>
+<p class="muted" id="status">Connect your phone and Cardputer to the same Wi-Fi. Open this page using the Cardputer's IP address and port 8765.</p>
+<script src="https://w.soundcloud.com/player/api.js"></script>
+<script>
+const $=id=>document.getElementById(id), frame=$('sc');let widget=null,ready=false;
+const fmt=n=>{n=Math.max(0,Math.floor((n||0)/1000));return Math.floor(n/60)+':'+String(n%60).padStart(2,'0')};
+function publish(extra={}){if(!widget||!ready)return;widget.getCurrentSound(s=>{if(!s)return;widget.getDuration(d=>widget.getPosition(p=>widget.isPaused(paused=>{
+const state={title:s.title||'Unknown track',artist:(s.user&&s.user.username)||'SoundCloud',artwork:s.artwork_url||'',duration:d||0,position:p||0,playing:!paused,...extra};
+fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)}).catch(()=>{});
+$('title').textContent=state.title;$('artist').textContent=state.artist;$('art').src=state.artwork.replace('-large','-t500x500');$('time').textContent=fmt(state.position)+' / '+fmt(state.duration);
+})));});}
+function setup(){widget=SC.Widget(frame);widget.bind(SC.Widget.Events.READY,()=>{ready=true;$('status').textContent='SoundCloud player ready';['PLAY','PAUSE','FINISH','SEEK','PLAY_PROGRESS'].forEach(e=>widget.bind(SC.Widget.Events[ e ],()=>publish()));publish();});}
+$('load').onclick=()=>{const u=$('url').value.trim();if(!/^https?:\/\/(www\.)?soundcloud\.com\//i.test(u)){ $('status').textContent='Enter a soundcloud.com track or playlist URL';return;}
+$('status').textContent='Loading SoundCloud…';const src='https://w.soundcloud.com/player/?url='+encodeURIComponent(u)+'&color=%23ff5500&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&visual=true';frame.src=src;ready=false;setup();};
+$('play').onclick=()=>{if(widget&&ready)widget.toggle();};$('prev').onclick=()=>{if(widget&&ready)widget.prev();};$('next').onclick=()=>{if(widget&&ready)widget.next();};
+setInterval(()=>{if(widget&&ready)publish();fetch('/api/commands').then(r=>r.json()).then(a=>a.forEach(x=>{if(!widget||!ready)return;({play:()=>widget.play(),pause:()=>widget.pause(),toggle:()=>widget.toggle(),next:()=>widget.next(),previous:()=>widget.prev()})[x.command]?.();})).catch(()=>{});},1000);
+</script></body></html>
