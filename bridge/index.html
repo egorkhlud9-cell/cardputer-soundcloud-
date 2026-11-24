@@ -8,9 +8,28 @@ header{display:flex;align-items:center;justify-content:space-between;margin:4px 
 .panel{background:linear-gradient(145deg,#191919,#101010);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0}
 .row{display:flex;gap:8px;align-items:center}.row>*{min-width:0;flex:1}input{width:100%;background:#090909;border:1px solid #383838;color:#fff;border-radius:11px;padding:13px;font:inherit;margin:8px 0}
 button{cursor:pointer}button:active{transform:scale(.98)}.track{display:flex;gap:14px;align-items:center}.art{width:84px;height:84px;object-fit:cover;background:#242424;border-radius:12px;border:1px solid #393939}.title{font-weight:750;font-size:16px;line-height:1.3}.meta{font-size:13px;color:var(--muted);margin-top:5px}.progress{width:100%;accent-color:var(--orange)}.time{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}
-iframe{width:100%;height:166px;border:0;border-radius:12px;margin-top:12px;background:#111}.item{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #282828}.item:first-child{border-top:0}.item .meta{flex:1}.item button{padding:8px 10px;font-size:12px}.hide{display:none!important}.hint{font-size:12px;line-height:1.5;color:#888}.section-title{font-size:12px;letter-spacing:1.5px;color:#ff8a4b;margin:0 0 10px}.queue-row{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #282828;font-size:13px}
+iframe{width:100%;height:166px;border:0;border-radius:12px;margin-top:12px;background:#111}
+/* Motion language: subtle, low-noise, orange-accented. */
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:.45;transform:scaleY(.55)}50%{opacity:1;transform:scaleY(1)}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 rgba(255,85,0,0)}50%{box-shadow:0 0 20px rgba(255,85,0,.13)}}
+@keyframes shimmer{0%{background-position:-220% 0}100%{background-position:220% 0}}
+.panel{animation:rise .38s ease both;transition:border-color .2s,transform .2s}
+.panel:focus-within{border-color:#60321f}
+.tab,button{transition:background .18s,border-color .18s,color .18s,transform .18s}
+button:hover,.tab:hover{border-color:var(--orange);transform:translateY(-1px)}
+button.primary{animation:glow 3.8s ease-in-out infinite}
+.art{transition:transform .35s,filter .35s}
+body:has(#play.playing) .art{animation:glow 3s ease-in-out infinite}
+section:not(.hide){animation:rise .28s ease both}
+#connection{transition:all .25s}
+#queue .queue-row{cursor:pointer;transition:background .18s;padding-inline:8px;border-radius:7px}
+#queue .queue-row:hover{background:#21160f}
+input:focus{outline:1px solid var(--orange);border-color:var(--orange)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.item{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #282828}.item:first-child{border-top:0}.item .meta{flex:1}.item button{padding:8px 10px;font-size:12px}.hide{display:none!important}.hint{font-size:12px;line-height:1.5;color:#888}.section-title{font-size:12px;letter-spacing:1.5px;color:#ff8a4b;margin:0 0 10px}.queue-row{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #282828;font-size:13px}
 </style></head><body>
-<header><h1>CLOUDZERO</h1><span class="pill" id="connection">PHONE REMOTE</span></header>
+<header><div style="display:flex;align-items:center;gap:12px"><h1>CLOUDZERO</h1><span aria-hidden="true" style="display:flex;gap:3px;align-items:center;height:18px"><i style="width:3px;height:7px;background:#ff5500;border-radius:4px;animation:pulse .8s infinite"></i><i style="width:3px;height:13px;background:#ff5500;border-radius:4px;animation:pulse .8s .15s infinite"></i><i style="width:3px;height:9px;background:#ff5500;border-radius:4px;animation:pulse .8s .3s infinite"></i></span></div><span class="pill" id="connection">PHONE REMOTE</span></header>
 <div class="tabs"><button class="tab active" data-page="player">PLAYER</button><button class="tab" data-page="library">LIBRARY</button><button class="tab" data-page="search">SEARCH</button></div>
 <section id="player">
 <div class="panel">
