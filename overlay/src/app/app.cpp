@@ -94,7 +94,7 @@ void animate_equalizer(bool enabled){
         lv_anim_t a;lv_anim_init(&a);lv_anim_set_var(&a,eq[i]);
         lv_anim_set_values(&a,4,15+i*2);lv_anim_set_duration(&a,260+i*90);
         lv_anim_set_playback_duration(&a,260+i*90);lv_anim_set_repeat_count(&a,LV_ANIM_REPEAT_INFINITE);
-        lv_anim_set_exec_cb(&a,equalizer_anim);lv_anim_set_start_delay(&a,i*100);lv_anim_start(&a);
+        lv_anim_set_exec_cb(&a,equalizer_anim);lv_anim_set_delay(&a,i*100);lv_anim_start(&a);
       }else{lv_obj_set_height(eq[i],4);lv_obj_align(eq[i],LV_ALIGN_TOP_RIGHT,-(8+i*6),18);}
     }
 }
