@@ -36,6 +36,7 @@ class App:
         self.message="Public mode · no account or API key"; self.search_text=""
         self.busy=False; self.running=True
         self.player.volume=int(self.config.get("volume",70))
+        self.ui.volume=self.player.volume
         self.load_section()
     def start_task(self,fn):
         if self.busy: return
@@ -118,19 +119,24 @@ class App:
         if event.type!=pygame.KEYDOWN: return
         key=event.key
         if self.section=="Search":
-            if key==pygame.K_BACKSPACE: self.search_text=self.search_text[:-1]; return
-            if key in (pygame.K_RETURN,pygame.K_KP_ENTER): self.start_task(self.search); return
+            if key==pygame.K_BACKSPACE:
+                self.search_text=self.search_text[:-1]; self.items=[]; self.selected=0; return
+            if key in (pygame.K_RETURN,pygame.K_KP_ENTER):
+                if self.items: self.activate()
+                else: self.start_task(self.search)
+                return
             if key==pygame.K_ESCAPE: self.navigate("Home"); return
-            if event.unicode and event.unicode.isprintable(): self.search_text+=event.unicode; return
+            if event.unicode and event.unicode.isprintable():
+                self.search_text+=event.unicode; self.items=[]; self.selected=0; return
         if key in (pygame.K_ESCAPE,pygame.K_BACKSPACE):
             if self.section=="Now Playing": self.navigate("Home")
             elif self.section=="Playlist": self.navigate("Playlists")
             elif self.section!="Home": self.navigate("Home")
             else: self.running=False
         elif self.section=="Now Playing" and key in (pygame.K_UP,pygame.K_PLUS,pygame.K_EQUALS):
-            self.player.set_volume(self.player.volume+5); self.message=f"Volume {self.player.volume}%"
+            self.player.set_volume(self.player.volume+5); self.ui.volume=self.player.volume; self.message=f"Volume {self.player.volume}%"
         elif self.section=="Now Playing" and key in (pygame.K_DOWN,pygame.K_MINUS):
-            self.player.set_volume(self.player.volume-5); self.message=f"Volume {self.player.volume}%"
+            self.player.set_volume(self.player.volume-5); self.ui.volume=self.player.volume; self.message=f"Volume {self.player.volume}%"
         elif key==pygame.K_UP: self.selected=max(0,self.selected-1)
         elif key==pygame.K_DOWN: self.selected=min(max(0,len(self.items)-1),self.selected+1)
         elif key in (pygame.K_RETURN,pygame.K_KP_ENTER): self.activate()
@@ -151,6 +157,7 @@ class App:
         print("BOOT: entering main event loop", flush=True)
         while self.running:
             for event in self.ui.events(): self.handle(event)
+            self.ui.volume=self.player.volume
             self.ui.draw(self.section,self.items,self.selected,self.message,self.track,
                 self.player.status(),None,self.message,self.search_text)
             self.ui.tick()
