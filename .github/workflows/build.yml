@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -56,6 +56,18 @@ jobs:
       - name: Package
         working-directory: /tmp/cp0-template
         run: cpack --preset cp0-cross-deb
+
+      - name: Publish latest Debian package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          asset="$(find /tmp/cp0-template/dist -maxdepth 1 -name '*.deb' -print -quit)"
+          test -n "$asset"
+          if gh release view cloudzero-latest >/dev/null 2>&1; then
+            gh release upload cloudzero-latest "$asset" --clobber
+          else
+            gh release create cloudzero-latest "$asset" --title "CloudZero latest for Cardputer Zero" --notes "Latest ARM64 Debian package built from main. See the repository README for features and known limitations." --prerelease
+          fi
 
       - name: Upload Debian package
         uses: actions/upload-artifact@v4
