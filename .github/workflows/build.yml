@@ -27,8 +27,8 @@ jobs:
           sudo apt-get install -y dpkg-dev
           chmod +x build_deb.sh
           ./build_deb.sh
-          dpkg-deb --info dist/soundcloud-cardputer_1.0.3_all.deb
-          dpkg-deb --contents dist/soundcloud-cardputer_1.0.3_all.deb
+          dpkg-deb --info dist/soundcloud-cardputer_1.0.4_all.deb
+          dpkg-deb --contents dist/soundcloud-cardputer_1.0.4_all.deb
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
