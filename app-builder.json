@@ -2,10 +2,10 @@
   "app_name": "CloudZero",
   "package_name": "cloudzero",
   "version": "0.1.0",
-  "description": "An animated SoundCloud companion player for Cardputer Zero with phone remote, saved library, queue and sleep timer.",
+  "description": "A standalone on-device SoundCloud player for Cardputer Zero with local library, queue and playlists.",
   "store": {
-    "summary": "A polished, animated music companion for Cardputer Zero",
-    "description": "A dark, orange-accented 320x170 player with animated playback state, physical-key navigation, a phone companion, queue display, saved SoundCloud links and a sleep timer. Uses SoundCloud's official embedded player in the current build.",
+    "summary": "A standalone SoundCloud player for Cardputer Zero",
+    "description": "A dark, orange-accented 320x170 on-device player with physical-key controls, public SoundCloud Widget playback, local queue, saved library and user-created playlists. No phone companion is required. The QtWebKit browser engine is a runtime dependency.",
     "categories": [
       "music",
       "tools"
