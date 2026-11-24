@@ -3,7 +3,7 @@ set -eu
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 OUT="$ROOT/dist"
 PKG="$OUT/soundcloud-cardputer"
-VERSION=1.0.1
+VERSION=1.0.2
 rm -rf "$OUT"
 mkdir -p "$PKG/DEBIAN" "$PKG/opt/soundcloud-cardputer" "$PKG/usr/bin" "$PKG/usr/share/applications" "$PKG/usr/share/APPLaunch/applications" "$PKG/usr/share/icons/hicolor/128x128/apps"
 cp "$ROOT/packaging/DEBIAN/control" "$PKG/DEBIAN/control"
