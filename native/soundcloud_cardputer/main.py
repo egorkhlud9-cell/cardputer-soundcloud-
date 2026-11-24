@@ -4,6 +4,7 @@ import pygame
 from .storage import load_config,save_config,load_library,save_library
 from .audio_player import AudioPlayer,AudioError
 from .ui_engine import UI
+print("BOOT: module imports complete", flush=True)
 
 SECTIONS=["Home","Search","Favorites","Playlists","My Tracks","Now Playing","Settings"]
 def public_search(query):
@@ -24,8 +25,13 @@ def public_search(query):
 
 class App:
     def __init__(self):
+        print("BOOT: loading local config", flush=True)
         self.config=load_config(); self.library=load_library()
-        self.ui=UI(); self.player=AudioPlayer()
+        print("BOOT: creating UI", flush=True)
+        self.ui=UI()
+        print("BOOT: UI ready; creating audio player", flush=True)
+        self.player=AudioPlayer()
+        print("BOOT: audio player ready", flush=True)
         self.section="Home"; self.items=[]; self.selected=0; self.track=self.config.get("last_track")
         self.message="Public mode · no account or API key"; self.search_text=""
         self.busy=False; self.running=True
@@ -142,6 +148,7 @@ class App:
         elif key in (pygame.K_PLUS,pygame.K_EQUALS) and self.section!="Now Playing":
             self.player.set_volume(self.player.volume+5); self.message=f"Volume {self.player.volume}%"
     def run(self):
+        print("BOOT: entering main event loop", flush=True)
         while self.running:
             for event in pygame.event.get(): self.handle(event)
             self.ui.draw(self.section,self.items,self.selected,self.message,self.track,
