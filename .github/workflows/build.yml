@@ -31,6 +31,15 @@ jobs:
         run: |
           python3 -m py_compile bridge/server.py tests/test_backend.py
           CLOUDZERO_DATA_DIR="$RUNNER_TEMP/cloudzero-test-data" python3 tests/test_backend.py
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path("bridge/index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script>(.*?)</script>", html, re.S)
+          assert scripts, "No inline application script found"
+          Path("/tmp/cloudzero-ui.js").write_text(scripts[-1], encoding="utf-8")
+          PY
+          node --check /tmp/cloudzero-ui.js
 
       - name: Fetch official CardputerZero template
         run: git clone --depth 1 https://github.com/CardputerZero/Template.git /tmp/cp0-template
