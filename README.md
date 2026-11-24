@@ -1,37 +1,43 @@
 # CloudZero
 
-A SoundCloud-focused player/controller for M5Stack Cardputer Zero (320x170, aarch64).
+A SoundCloud-focused music player and companion UI for M5Stack Cardputer Zero (320x170, ARM64).
 
-## Goal
+## Product direction
 
-A compact dark player UI on the Cardputer Zero, with an Android phone acting as the SoundCloud playback source and remote. The phone will use SoundCloud's official embedded player and Widget API; the Cardputer will display track metadata/progress and provide transport controls over local Wi-Fi.
+CloudZero is designed around the Cardputer's small screen and keyboard:
+- Now Playing: artwork, title, artist, progress and transport controls.
+- Queue: shows tracks supplied by the official SoundCloud widget.
+- Sleep: sleep timer with pause at expiry.
+- Search: opens SoundCloud's own search experience from the phone remote.
+- Library: save SoundCloud track and playlist links locally on the Cardputer.
+- Phone Link: use an Android browser as a companion screen and text-entry surface.
 
-This avoids unofficial stream extraction and does not require SoundCloud credentials embedded in the device.
+## Playback architecture
 
-## Hardware / target
+The current implementation uses SoundCloud's official embedded player in the phone browser. The Cardputer talks to a local HTTP bridge over Wi-Fi and can display metadata and send transport commands.
 
-- Cardputer Zero, Debian 13, aarch64
-- 320x170 ST7789 display
-- LVGL 9.x application based on the official CardputerZero template
-- Debian arm64 package
+Direct playback on the Cardputer is a planned next milestone. Cardputer Zero has onboard audio hardware, but standalone SoundCloud playback requires an approved SoundCloud API application, supported stream access for each track, and a native audio output pipeline. Tracks can be restricted or unavailable for off-platform playback. CloudZero will not scrape private endpoints or bypass access restrictions.
+
+## Local library
+
+Saved tracks and playlist links are stored under /var/lib/cloudzero/library.json on the Cardputer and persist across restarts. The bridge accepts only SoundCloud URLs.
 
 ## Build
 
-GitHub Actions cross-compiles the app using the official CardputerZero template and publishes the Debian package as a workflow artifact.
+GitHub Actions cross-compiles the app using the official CardputerZero template and publishes a Debian arm64 package as a workflow artifact.
 
-Push to main or run the Build CardputerZero package workflow manually.
+## Install concept
 
-## Planned interaction
-
-1. Connect Cardputer and phone to the same Wi-Fi network.
-2. Open the Cardputer's local control page from the phone.
-3. Paste a SoundCloud track/playlist URL; playback runs in SoundCloud's official embed on the phone.
-4. The Cardputer shows artwork/title/artist/progress and sends play/pause/next/previous commands.
+1. Install the Debian package on Cardputer Zero.
+2. Enable and start cloudzero-bridge.service.
+3. Connect Cardputer and phone to the same Wi-Fi.
+4. Open http://CARDPUTER_IP:8765 on the phone.
+5. Load a track or playlist; use the Cardputer screen and keyboard as the compact player interface.
 
 ## Status
 
-Initial repository, dark player UI shell, and cross-build pipeline. The phone bridge and real playback controls are not implemented yet; a successful CI build is not the same as verified playback on hardware.
+Native LVGL player UI, phone synchronization, local bridge, SoundCloud remote, queue display, saved library, and cross-build workflow are under active development. CI success confirms compilation/package creation, not yet hardware playback validation.
 
-## Legal / access
+## Access and attribution
 
-Playback is delegated to SoundCloud's official embedded player in the phone browser. No DRM circumvention, private API scraping, or embedded account tokens.
+Playback is delegated to SoundCloud's official embedded player. Direct API streaming will be implemented only through authorized API access, with required creator and SoundCloud attribution.
