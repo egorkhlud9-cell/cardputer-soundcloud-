@@ -1,7 +1,7 @@
 {
   "app_name": "CloudZero",
   "package_name": "cloudzero",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A standalone on-device SoundCloud player for Cardputer Zero with local library, queue and playlists.",
   "store": {
     "summary": "A standalone SoundCloud player for Cardputer Zero",
