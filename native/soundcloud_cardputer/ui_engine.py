@@ -77,7 +77,7 @@ class UI:
     def _unicode(self,code,shift):
         if ecodes.KEY_A <= code <= ecodes.KEY_Z:
             c=chr(ord("a")+code-ecodes.KEY_A); return c.upper() if shift else c
-        if ecodes.KEY_1 <= code <= ecodes.KEY_9: return "!"@"" if False else ("123456789"[code-ecodes.KEY_1] if not shift else "!@#$%^&*("[code-ecodes.KEY_1])
+        if ecodes.KEY_1 <= code <= ecodes.KEY_9: return "123456789"[code-ecodes.KEY_1] if not shift else "!@#$%^&*("[code-ecodes.KEY_1]
         if code==ecodes.KEY_0: return ")" if shift else "0"
         if code==ecodes.KEY_SPACE: return " "
         if code in (ecodes.KEY_DOT,): return ">" if shift else "."
