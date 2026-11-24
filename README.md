@@ -30,7 +30,7 @@ If Zero Browser is unavailable, the CloudZero launcher exits with a clear error 
 
 The package is built for ARM64 Debian on Cardputer Zero. On the device, run:
 
-    curl -fL https://github.com/egorkhlud9-cell/cardputer-soundcloud-/releases/download/cloudzero-latest/CloudZero_0.1.0_rev1_arm64.deb -o /tmp/cloudzero.deb && sudo apt-get install -y /tmp/cloudzero.deb
+    curl -fL https://github.com/egorkhlud9-cell/cardputer-soundcloud-/releases/download/cloudzero-latest/CloudZero_0.2.0_rev1_arm64.deb -o /tmp/cloudzero.deb && sudo apt-get install -y /tmp/cloudzero.deb
 
 Open CloudZero from APPLaunch. The cloudzero-bridge.service local application server is enabled automatically. The UI is served only on 127.0.0.1:8765; it is not exposed to the LAN.
 
