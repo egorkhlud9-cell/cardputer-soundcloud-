@@ -30,7 +30,7 @@ lv_obj_t *progress_bar=nullptr,*time_label=nullptr,*cover=nullptr,*cover_mark=nu
 lv_obj_t *page_label=nullptr,*detail_label=nullptr,*eq[3]={nullptr,nullptr,nullptr};
 lv_obj_t *play_button_label=nullptr;
 bool playing=false,connected=false;
-int queue_count=0,page=0,sleep_minutes=0,sleep_remaining=0;
+int queue_count=0,library_count=0,page=0,sleep_minutes=0,sleep_remaining=0;
 uint32_t last_poll=0,last_second=0;
 std::string last_title;
 
@@ -103,7 +103,7 @@ void transport_event(lv_event_t* e){
     if(id==0)command("previous");
     else if(id==1)command("toggle");
     else if(id==2)command("next");
-    else if(id==3){page=(page+1)%3;}
+    else if(id==3){page=(page+1)%4;}
     else if(id==4){sleep_minutes=sleep_minutes==0?15:sleep_minutes==15?30:sleep_minutes==30?60:0;sleep_remaining=sleep_minutes*60;last_second=lv_tick_get();}
 }
 lv_obj_t* button(lv_obj_t* p,const char* txt,int id,int w,size_t key_index){
@@ -123,7 +123,7 @@ void poll_state(){
     connected=true;
     std::string title=json_string(j,"title","Nothing playing");
     std::string artist=json_string(j,"artist","Open CloudZero on your phone");
-    playing=json_bool(j,"playing");queue_count=(int)json_number(j,"queue_count");
+    playing=json_bool(j,"playing");queue_count=(int)json_number(j,"queue_count");library_count=(int)json_number(j,"library_count");
     double pos=json_number(j,"position"),dur=json_number(j,"duration");
     if(title!=last_title){last_title=title;set_text(title_label,title);fade_in(title_label);}
     set_text(artist_label,artist);
