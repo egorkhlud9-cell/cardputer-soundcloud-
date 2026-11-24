@@ -225,12 +225,12 @@ class UI:
         elif section == "Search":
             self._text("FIND YOUR NEXT TRACK", 9, 31, self.font, WHITE)
             d.rounded_rectangle((8, 50, 312, 70), radius=5, fill=SURFACE_2, outline=ACCENT, width=1)
-            self._text("⌕", 15, 53, self.font, ACCENT)
-            self._text(search_text or "Type a track or artist…", 31, 55, self.small,
+            self._text(">", 15, 53, self.font, ACCENT)
+            self._text(search_text or "Type a track or artist...", 31, 55, self.small,
                        WHITE if search_text else MUTED, 270)
             self._text(f"{len(items)} RESULTS", 10, 74, self.tiny, MUTED)
-            self._draw_rows(items, selected, 86, 4)
-            self._footer("TYPE TO SEARCH  ⌫ DELETE", "ENTER SEARCH / PLAY")
+            self._draw_rows(items, selected, 86, 3)
+            self._footer("TYPE TO SEARCH  BACKSPACE", "ENTER SEARCH / PLAY")
         elif section == "Now Playing":
             self._draw_player(track, player_status)
             self._footer("←→ SEEK  ↑↓ VOLUME", "SPACE PAUSE  ESC BACK")
@@ -247,7 +247,7 @@ class UI:
             else:
                 self._draw_rows(items, selected, 62, 4)
             self._footer("↑↓ MOVE  ENTER PLAY", "F SAVE  P ADD")
-        if message:
+        if message and section not in ("Home", "Now Playing"):
             d.rounded_rectangle((7, 137, 313, 148), radius=4, fill=(35, 29, 26))
             self._text(message, 12, 139, self.tiny, ACCENT, 292)
         self._present()
@@ -290,9 +290,9 @@ class UI:
             d.rounded_rectangle((18, 108, 18 + int(284 * min(1, pos / dur)), 113), radius=3, fill=ACCENT)
         self._text(f"{int(pos)//60:02}:{int(pos)%60:02}", 18, 116, self.tiny, MUTED)
         self._text(f"{int(dur)//60:02}:{int(dur)%60:02}", 268, 116, self.tiny, MUTED)
-        self._pill((8, 129, 102, 148), "PREVIOUS / BACK")
-        self._pill((113, 129, 207, 148), "PLAY / PAUSE", selected=True)
-        self._pill((218, 129, 312, 148), "NEXT / SEEK")
+        self._pill((8, 129, 102, 148), "LEFT  -10 SEC")
+        self._pill((113, 129, 207, 148), "SPACE  PAUSE", selected=True)
+        self._pill((218, 129, 312, 148), "RIGHT  +10 SEC")
 
     def _present(self):
         arr = np.asarray(self.image, dtype=np.uint8)
