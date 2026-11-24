@@ -130,6 +130,11 @@ class SoundCloudClient:
             headers["Content-Type"] = "application/json"
         return _json_request(url, method, headers, body)
 
+    def disconnect(self):
+        self.ensure_token()
+        return _json_request(API + "/disconnect", "POST",
+            {"Authorization":"OAuth " + self.config["access_token"], "Accept":"application/json"})
+
     def pages(self, path, limit=50, max_pages=10):
         url = API + path
         separator = "&" if "?" in url else "?"

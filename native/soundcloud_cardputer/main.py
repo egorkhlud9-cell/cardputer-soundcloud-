@@ -72,6 +72,28 @@ class App:
         self.message="Approve in external browser…"
         self.user=self.client.login(); self.message="Connected as "+self.user.get("username","user")
         self.sync()
+    def logout(self):
+        try:
+            self.client.disconnect()
+            self.message="SoundCloud access revoked"
+        except Exception as exc:
+            self.message="Local logout; remote revoke failed: "+str(exc)[:45]
+        self.config.update({"access_token":"","refresh_token":"","expires_at":0,"scope":""})
+        save_config(self.config); self.user=None
+    def toggle_favorite(self, track):
+        if self.config.get("access_token"):
+            existing={x.get("urn") or x.get("id") for x in self.client.likes()}
+            ident=track.get("urn") or track.get("id")
+            if ident in existing: self.client.unlike(track); self.message="Removed SoundCloud like"
+            else: self.client.like(track); self.message="Liked on SoundCloud"
+            if self.section=="Favorites": self.items=self.client.likes()
+        else:
+            fav=self.library["favorites"]; ident=track.get("urn") or track.get("id")
+            found=next((x for x in fav if (x.get("urn") or x.get("id"))==ident),None)
+            if found: fav.remove(found); self.message="Removed local favorite"
+            else: fav.insert(0,track); self.message="Saved to local favorites"
+            save_library(self.library)
+            if self.section=="Favorites": self.items=fav
     def edit_setting(self, idx):
         labels=["Client ID","Client Secret","Redirect URI"]
         key=["client_id","client_secret","redirect_uri"][idx]
@@ -101,8 +123,7 @@ class App:
             if self.selected==0: self.start_task(self.login)
             elif self.selected==1: self.start_task(self.sync)
             elif self.selected in (2,3,4): self.edit_setting(self.selected-2)
-            elif self.selected==5:
-                self.config.update({"access_token":"","refresh_token":"","expires_at":0}); save_config(self.config); self.user=None; self.message="Disconnected locally"
+            elif self.selected==5: self.start_task(self.logout)
             elif self.selected==6: self.navigate("Home")
         elif self.section=="Search":
             if self.items and self.selected<len(self.items): self.start_task(lambda:self.play_track(self.items[self.selected]))
@@ -114,7 +135,11 @@ class App:
             if self.items and self.selected<len(self.items): self.start_task(lambda:self.play_track(self.items[self.selected]))
         elif self.section=="Now Playing": self.player.toggle()
     def show_playlist(self, playlist):
-        self.items=self.client.playlist_tracks(playlist); self.section="Playlist"; self.selected=0; self.message="Playlist tracks"
+        if self.config.get("access_token"):
+            self.items=self.client.playlist_tracks(playlist)
+        else:
+            self.items=playlist.get("tracks",[])
+        self.section="Playlist"; self.selected=0; self.message="Playlist tracks"
     def search(self):
         if self.config.get("access_token"):
             self.items=self.client.search_tracks(self.search_text)
@@ -146,6 +171,8 @@ class App:
             elif event.key==pygame.K_SPACE:
                 if self.section=="Now Playing": self.player.toggle()
                 elif self.items and isinstance(self.items[self.selected],dict): self.start_task(lambda:self.play_track(self.items[self.selected]))
+            elif event.key==pygame.K_f and self.items and isinstance(self.items[self.selected],dict):
+                self.start_task(lambda:self.toggle_favorite(self.items[self.selected]))
             elif event.key==pygame.K_LEFT and self.section=="Now Playing": self.player.seek(-10)
             elif event.key==pygame.K_RIGHT and self.section=="Now Playing": self.player.seek(10)
             elif event.key in (pygame.K_PLUS,pygame.K_EQUALS): self.player.set_volume(self.player.volume+5)
