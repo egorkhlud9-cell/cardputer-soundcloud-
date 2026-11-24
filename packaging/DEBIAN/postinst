@@ -17,6 +17,14 @@ done
 rm -f /usr/local/bin/cloudzero /usr/bin/cloudzero
 systemctl daemon-reload >/dev/null 2>&1 || true
 pkill -f '[z]ero-browser.*127\.0\.0\.1:8766' >/dev/null 2>&1 || true
+# The app reads the Cardputer keyboard through Linux evdev. Grant the
+# installing desktop user access to input devices when installed via sudo.
+target_user="${SUDO_USER:-}"
+if [ -n "$target_user" ] && [ "$target_user" != root ] && getent group input >/dev/null 2>&1; then
+  if ! id -nG "$target_user" | tr ' ' '\n' | grep -qx input; then
+    usermod -aG input "$target_user" || true
+  fi
+fi
 chmod 755 /usr/bin/soundcloud-cardputer
 if command -v update-desktop-database >/dev/null 2>&1; then update-desktop-database -q /usr/share/applications || true; fi
 exit 0
