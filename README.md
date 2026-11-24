@@ -39,10 +39,11 @@ Open CloudZero from APPLaunch. The cloudzero-bridge.service local application se
 | Key | Action |
 |---|---|
 | Q | Play / pause |
-| A | Previous |
-| D | Next |
-| W | Volume up |
+| W | Previous |
+| E | Next |
+| A | Mute |
 | S | Volume down |
+| D | Volume up |
 | 1–5 | Player / Add / Queue / Library / Playlists |
 | Enter | Activate focused control |
 | Esc | Return to Player |
