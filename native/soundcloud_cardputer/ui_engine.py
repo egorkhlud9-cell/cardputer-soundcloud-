@@ -1,177 +1,332 @@
 from __future__ import annotations
-import glob, mmap, os, time
+import glob, mmap, os, select, time
 from types import SimpleNamespace
 import pygame
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from evdev import InputDevice, ecodes
 
-BG=(18,18,18); PANEL=(29,29,29); ORANGE=(255,85,0); WHITE=(245,245,245); MUTED=(160,160,160)
-W,H=320,170
+W, H = 320, 170
+BG = (11, 12, 15)
+SURFACE = (20, 22, 27)
+SURFACE_2 = (29, 32, 39)
+LINE = (43, 47, 56)
+ACCENT = (255, 91, 36)
+ACCENT_SOFT = (62, 34, 27)
+WHITE = (244, 245, 247)
+MUTED = (139, 146, 158)
+GREEN = (112, 205, 151)
 
 class UI:
-    def __init__(self,size=(W,H)):
-        self.width,self.height=size
-        self.fb_path=self._find_fb()
-        self.stride=self.width*2
-        for p in ("/sys/class/graphics/fb0/stride","/sys/class/graphics/fb1/stride"):
-            try:
-                if os.path.realpath("/dev/fb0")==self.fb_path:
-                    self.stride=int(open("/sys/class/graphics/fb0/stride").read().strip()); break
-            except Exception: pass
-        self.fb_fd=os.open(self.fb_path,os.O_RDWR|os.O_SYNC)
-        self.fb=mmap.mmap(self.fb_fd,self.stride*self.height,mmap.MAP_SHARED,mmap.PROT_READ|mmap.PROT_WRITE)
-        self.image=Image.new("RGB",(self.width,self.height),BG)
-        self.drawctx=ImageDraw.Draw(self.image)
-        self.font=self._font(17); self.small=self._font(13); self.big=self._font(21)
-        self.device=self._find_keyboard()
-        self.last_draw=0.0
+    def __init__(self, size=(W, H)):
+        self.width, self.height = size
+        self.fb_path = self._find_fb()
+        self.stride = self._get_stride()
+        self.fb_fd = os.open(self.fb_path, os.O_RDWR | os.O_SYNC)
+        self.fb = mmap.mmap(self.fb_fd, self.stride * self.height, mmap.MAP_SHARED,
+                            mmap.PROT_READ | mmap.PROT_WRITE)
+        self.image = Image.new("RGB", (self.width, self.height), BG)
+        self.drawctx = ImageDraw.Draw(self.image)
+        self.font = self._font(12, True)
+        self.body = self._font(10)
+        self.small = self._font(9)
+        self.tiny = self._font(8)
+        self.hero = self._font(19, True)
+        self.devices = self._open_keyboards()
+        self.shift_down = False
+        self.last_draw = 0.0
+        self.last_input_log = 0.0
         self._unblank()
-        print(f"FB: {self.fb_path} {self.width}x{self.height} RGB565 stride={self.stride}",flush=True)
-        print(f"INPUT: {self.device.path if self.device else 'no keyboard found'}",flush=True)
+        print(f"FB: {self.fb_path} {self.width}x{self.height} RGB565 stride={self.stride}", flush=True)
+        print("INPUT DEVICES: " + (", ".join(f"{d.path} [{d.name}]" for d in self.devices) or "NONE - check /dev/input permissions"), flush=True)
 
     def _find_fb(self):
         for i in range(4):
             try:
-                name=open(f"/sys/class/graphics/fb{i}/name").read().lower()
+                name = open(f"/sys/class/graphics/fb{i}/name").read().lower()
                 if "panel-mipi-dbi" in name or "st7789v_m5st" in name:
                     return f"/dev/fb{i}"
-            except OSError: pass
-        if os.path.exists("/dev/fb0"): return "/dev/fb0"
+            except OSError:
+                pass
+        if os.path.exists("/dev/fb0"):
+            return "/dev/fb0"
         raise RuntimeError("Cardputer LCD framebuffer not found")
 
-    def _font(self,n):
-        for p in ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf","/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"):
-            if os.path.exists(p): return ImageFont.truetype(p,n)
+    def _get_stride(self):
+        try:
+            i = int(self._find_fb().replace("/dev/fb", ""))
+            return int(open(f"/sys/class/graphics/fb{i}/stride").read().strip())
+        except Exception:
+            return self.width * 2
+
+    def _font(self, size, bold=False):
+        names = (["DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf"] if bold else
+                 ["DejaVuSans.ttf", "LiberationSans-Regular.ttf"])
+        dirs = ["/usr/share/fonts/truetype/dejavu", "/usr/share/fonts/truetype/liberation2"]
+        for directory in dirs:
+            for name in names:
+                path = os.path.join(directory, name)
+                if os.path.exists(path):
+                    return ImageFont.truetype(path, size)
         return ImageFont.load_default()
 
-    def _find_keyboard(self):
+    def _open_keyboards(self):
+        found = []
         for path in sorted(glob.glob("/dev/input/event*")):
             try:
-                d=InputDevice(path); caps=d.capabilities().get(ecodes.EV_KEY,[])
-                if ecodes.KEY_ENTER in caps and ecodes.KEY_UP in caps and ecodes.KEY_DOWN in caps:
-                    d.set_blocking(False)
-                    return d
-                d.close()
-            except Exception: pass
-        return None
+                dev = InputDevice(path)
+                caps = dev.capabilities().get(ecodes.EV_KEY, [])
+                if not caps:
+                    dev.close()
+                    continue
+                dev.set_blocking(False)
+                found.append(dev)
+                print(f"INPUT OPEN: {path} name={dev.name!r} key_count={len(caps)}", flush=True)
+            except Exception as exc:
+                print(f"INPUT SKIP: {path}: {type(exc).__name__}: {exc}", flush=True)
+        return found
 
     def _unblank(self):
         try:
-            p=self.fb_path.replace("/dev/","/sys/class/graphics/")+"/blank"
-            open(p,"w").write("0")
-        except Exception: pass
+            index = self.fb_path.replace("/dev/fb", "")
+            with open(f"/sys/class/graphics/fb{index}/blank", "w") as f:
+                f.write("0")
+        except Exception:
+            pass
 
-    def _key_event(self,code):
-        mapping={
-            ecodes.KEY_UP:pygame.K_UP, ecodes.KEY_DOWN:pygame.K_DOWN,
-            ecodes.KEY_LEFT:pygame.K_LEFT, ecodes.KEY_RIGHT:pygame.K_RIGHT,
-            ecodes.KEY_ENTER:pygame.K_RETURN, ecodes.KEY_KPENTER:pygame.K_KP_ENTER,
-            ecodes.KEY_ESC:pygame.K_ESCAPE, ecodes.KEY_BACKSPACE:pygame.K_BACKSPACE,
-            ecodes.KEY_SPACE:pygame.K_SPACE, ecodes.KEY_F:pygame.K_f,
-            ecodes.KEY_P:pygame.K_p, ecodes.KEY_R:pygame.K_r,
-            ecodes.KEY_EQUAL:pygame.K_EQUALS, ecodes.KEY_KPPLUS:pygame.K_PLUS,
-            ecodes.KEY_MINUS:pygame.K_MINUS, ecodes.KEY_KPMINUS:pygame.K_MINUS,
+    def _key_event(self, code):
+        mapping = {
+            ecodes.KEY_UP: pygame.K_UP, ecodes.KEY_DOWN: pygame.K_DOWN,
+            ecodes.KEY_LEFT: pygame.K_LEFT, ecodes.KEY_RIGHT: pygame.K_RIGHT,
+            ecodes.KEY_ENTER: pygame.K_RETURN, ecodes.KEY_KPENTER: pygame.K_KP_ENTER,
+            ecodes.KEY_ESC: pygame.K_ESCAPE, ecodes.KEY_BACKSPACE: pygame.K_BACKSPACE,
+            ecodes.KEY_SPACE: pygame.K_SPACE, ecodes.KEY_F: pygame.K_f,
+            ecodes.KEY_P: pygame.K_p, ecodes.KEY_R: pygame.K_r,
+            ecodes.KEY_EQUAL: pygame.K_EQUALS, ecodes.KEY_KPPLUS: pygame.K_PLUS,
+            ecodes.KEY_MINUS: pygame.K_MINUS, ecodes.KEY_KPMINUS: pygame.K_MINUS,
+            ecodes.KEY_TAB: pygame.K_TAB,
         }
         return mapping.get(code)
 
-    def _unicode(self,code,shift):
-        letters=[ecodes.KEY_Q,ecodes.KEY_W,ecodes.KEY_E,ecodes.KEY_R,ecodes.KEY_T,ecodes.KEY_Y,ecodes.KEY_U,ecodes.KEY_I,ecodes.KEY_O,ecodes.KEY_P,
-                 ecodes.KEY_A,ecodes.KEY_S,ecodes.KEY_D,ecodes.KEY_F,ecodes.KEY_G,ecodes.KEY_H,ecodes.KEY_J,ecodes.KEY_K,ecodes.KEY_L,
-                 ecodes.KEY_Z,ecodes.KEY_X,ecodes.KEY_C,ecodes.KEY_V,ecodes.KEY_B,ecodes.KEY_N,ecodes.KEY_M]
-        chars="qwertyuiopasdfghjklzxcvbnm"
+    def _unicode(self, code):
+        letters = [ecodes.KEY_Q,ecodes.KEY_W,ecodes.KEY_E,ecodes.KEY_R,ecodes.KEY_T,
+                   ecodes.KEY_Y,ecodes.KEY_U,ecodes.KEY_I,ecodes.KEY_O,ecodes.KEY_P,
+                   ecodes.KEY_A,ecodes.KEY_S,ecodes.KEY_D,ecodes.KEY_F,ecodes.KEY_G,
+                   ecodes.KEY_H,ecodes.KEY_J,ecodes.KEY_K,ecodes.KEY_L,
+                   ecodes.KEY_Z,ecodes.KEY_X,ecodes.KEY_C,ecodes.KEY_V,ecodes.KEY_B,
+                   ecodes.KEY_N,ecodes.KEY_M]
+        chars = "qwertyuiopasdfghjklzxcvbnm"
         if code in letters:
-            ch=chars[letters.index(code)]
-            return ch.upper() if shift else ch
-        digits=[ecodes.KEY_1,ecodes.KEY_2,ecodes.KEY_3,ecodes.KEY_4,ecodes.KEY_5,ecodes.KEY_6,ecodes.KEY_7,ecodes.KEY_8,ecodes.KEY_9]
+            char = chars[letters.index(code)]
+            return char.upper() if self.shift_down else char
+        digits = [ecodes.KEY_1,ecodes.KEY_2,ecodes.KEY_3,ecodes.KEY_4,ecodes.KEY_5,
+                  ecodes.KEY_6,ecodes.KEY_7,ecodes.KEY_8,ecodes.KEY_9]
         if code in digits:
-            return "123456789"[digits.index(code)] if not shift else "!@#$%^&*("[digits.index(code)]
-        if code==ecodes.KEY_0: return ")" if shift else "0"
-        if code==ecodes.KEY_SPACE: return " "
-        if code==ecodes.KEY_DOT: return ">" if shift else "."
-        if code==ecodes.KEY_COMMA: return "<" if shift else ","
-        if code==ecodes.KEY_MINUS: return "_" if shift else "-"
-        if code==ecodes.KEY_SLASH: return "?" if shift else "/"
+            plain, shifted = "123456789", "!@#$%^&*("
+            return (shifted if self.shift_down else plain)[digits.index(code)]
+        if code == ecodes.KEY_0: return ")" if self.shift_down else "0"
+        if code == ecodes.KEY_SPACE: return " "
+        if code == ecodes.KEY_DOT: return ">" if self.shift_down else "."
+        if code == ecodes.KEY_COMMA: return "<" if self.shift_down else ","
+        if code == ecodes.KEY_MINUS: return "_" if self.shift_down else "-"
+        if code == ecodes.KEY_SLASH: return "?" if self.shift_down else "/"
+        if code == ecodes.KEY_APOSTROPHE: return '"' if self.shift_down else "'"
         return ""
 
     def events(self):
-        if not self.device: return []
-        out=[]
+        out = []
+        if not self.devices:
+            return out
         try:
-            for e in self.device.read():
-                if e.type!=ecodes.EV_KEY or e.value==0: continue
-                key=self._key_event(e.code)
-                shift=bool(self.device.active_keys() and any(k in self.device.active_keys() for k in (ecodes.KEY_LEFTSHIFT,ecodes.KEY_RIGHTSHIFT)))
-                if key is not None:
-                    out.append(SimpleNamespace(type=pygame.KEYDOWN,key=key,unicode=self._unicode(e.code,shift)))
-                elif self._unicode(e.code,shift):
-                    out.append(SimpleNamespace(type=pygame.KEYDOWN,key=0,unicode=self._unicode(e.code,shift)))
-        except BlockingIOError: pass
-        except OSError: self.device=None
+            ready, _, _ = select.select([d.fd for d in self.devices], [], [], 0)
+        except (OSError, ValueError):
+            return out
+        for dev in self.devices:
+            if dev.fd not in ready:
+                continue
+            try:
+                while True:
+                    try:
+                        event = dev.read_one()
+                    except BlockingIOError:
+                        break
+                    if event is None:
+                        break
+                    if event.type != ecodes.EV_KEY:
+                        continue
+                    if event.code in (ecodes.KEY_LEFTSHIFT, ecodes.KEY_RIGHTSHIFT):
+                        self.shift_down = event.value != 0
+                        continue
+                    if event.value == 0:
+                        continue
+                    key = self._key_event(event.code)
+                    char = self._unicode(event.code)
+                    if key is not None or char:
+                        out.append(SimpleNamespace(type=pygame.KEYDOWN, key=key if key is not None else 0, unicode=char))
+                        now = time.monotonic()
+                        if now - self.last_input_log > 2:
+                            print(f"INPUT KEY: {dev.path} code={event.code} key={key} char={char!r}", flush=True)
+                            self.last_input_log = now
+            except OSError as exc:
+                print(f"INPUT READ ERROR: {dev.path}: {exc}", flush=True)
         return out
 
-    def text(self,value,x,y,color=WHITE,font=None,maxw=300):
-        font=font or self.font; s=str(value).replace("\\n"," ")
-        while s and self.drawctx.textbbox((0,0),s,font=font)[2]>maxw: s=s[:-1]
-        self.drawctx.text((x,y),s,fill=color,font=font)
+    def _text(self, value, x, y, font=None, fill=WHITE, maxw=None):
+        font = font or self.body
+        value = str(value).replace("\n", " ")
+        if maxw:
+            while value and self.drawctx.textbbox((0, 0), value, font=font)[2] > maxw:
+                value = value[:-1]
+        self.drawctx.text((x, y), value, font=font, fill=fill)
 
-    def draw(self,section,items,selected,status,track,player_status,user=None,message="",search_text=""):
-        d=self.drawctx; d.rectangle((0,0,W,H),fill=BG); d.rectangle((0,0,W,23),fill=PANEL)
-        self.text("SOUNDCLOUD",6,2,ORANGE,self.big,140); self.text(section.upper(),164,5,MUTED,self.small,150)
-        if section=="Search":
-            d.rounded_rectangle((5,27,315,47),radius=3,fill=(38,38,38))
-            self.text("> "+(search_text or "Type to search..."),10,29,WHITE,self.small,300); y0=52
-        else: y0=27
-        if section=="Now Playing":
-            self.text(track.get("title","Nothing playing") if track else "Nothing playing",8,34,WHITE,self.big,300)
-            self.text((track.get("user") or {}).get("username","") if track else "",8,57,MUTED,self.small,300)
-            dur=player_status.get("duration",0) or 0; pos=player_status.get("time",0) or 0
-            d.rounded_rectangle((8,88,312,93),radius=2,fill=(55,55,55))
-            if dur: d.rounded_rectangle((8,88,8+int(304*min(1,pos/dur)),93),radius=2,fill=ORANGE)
-            self.text(f"{int(pos)//60:02}:{int(pos)%60:02} / {int(dur)//60:02}:{int(dur)%60:02}",8,98,MUTED,self.small,120)
-            self.text("ENTER/SPACE: pause   LEFT/RIGHT: seek",8,128,WHITE,self.small,300)
-            self.text("UP/DOWN: volume   ESC: back",8,145,MUTED,self.small,300)
+    def _pill(self, box, label, selected=False):
+        d = self.drawctx
+        d.rounded_rectangle(box, radius=6, fill=ACCENT_SOFT if selected else SURFACE_2,
+                            outline=ACCENT if selected else LINE, width=1)
+        self._text(label, box[0] + 7, box[1] + 5, self.small, ACCENT if selected else WHITE,
+                   box[2] - box[0] - 12)
+
+    def _header(self, section, right="PUBLIC"):
+        d = self.drawctx
+        d.rectangle((0, 0, W, 25), fill=SURFACE)
+        d.rounded_rectangle((7, 6, 19, 18), radius=4, fill=ACCENT)
+        d.polygon([(11, 9), (11, 15), (16, 12)], fill=BG)
+        self._text("SOUND", 25, 5, self.font, WHITE)
+        self._text("CLOUD", 67, 5, self.font, ACCENT)
+        self._text(section.upper(), 153, 8, self.tiny, MUTED, 90)
+        d.rounded_rectangle((263, 7, 313, 19), radius=6, fill=(28, 45, 38))
+        self._text(right, 273, 9, self.tiny, GREEN, 38)
+
+    def _footer(self, left="↑↓ MOVE", right="ENTER SELECT"):
+        d = self.drawctx
+        d.line((7, 151, 313, 151), fill=LINE, width=1)
+        self._text(left, 9, 157, self.tiny, MUTED, 140)
+        self._text(right, 183, 157, self.tiny, MUTED, 128)
+
+    def draw(self, section, items, selected, status, track, player_status, user=None, message="", search_text=""):
+        self.image.paste(BG, (0, 0))
+        self.drawctx = ImageDraw.Draw(self.image)
+        d = self.drawctx
+        self._header(section)
+        if section == "Home":
+            self._text("YOUR SOUNDTRACK.", 9, 31, self.hero, WHITE)
+            self._text("Discover and play. No login required.", 10, 54, self.small, MUTED)
+            tiles = [("01", "DISCOVER"), ("02", "FAVORITES"), ("03", "PLAYLISTS"),
+                     ("04", "RECENT"), ("05", "PLAYER"), ("06", "SETTINGS")]
+            for i, (num, label) in enumerate(tiles):
+                col, row = i % 2, i // 2
+                x, y = 8 + col * 155, 72 + row * 24
+                d.rounded_rectangle((x, y, x + 148, y + 20), radius=5,
+                                    fill=ACCENT_SOFT if i == selected else SURFACE,
+                                    outline=ACCENT if i == selected else LINE, width=1)
+                self._text(num, x + 7, y + 5, self.tiny, ACCENT)
+                self._text(label, x + 27, y + 4, self.small, WHITE if i == selected else MUTED)
+            self._footer("↑↓ MOVE  ENTER OPEN", "R REFRESH")
+        elif section == "Search":
+            self._text("FIND YOUR NEXT TRACK", 9, 31, self.font, WHITE)
+            d.rounded_rectangle((8, 50, 312, 70), radius=5, fill=SURFACE_2, outline=ACCENT, width=1)
+            self._text("⌕", 15, 53, self.font, ACCENT)
+            self._text(search_text or "Type a track or artist…", 31, 55, self.small,
+                       WHITE if search_text else MUTED, 270)
+            self._text(f"{len(items)} RESULTS", 10, 74, self.tiny, MUTED)
+            self._draw_rows(items, selected, 86, 4)
+            self._footer("TYPE TO SEARCH  ⌫ DELETE", "ENTER SEARCH / PLAY")
+        elif section == "Now Playing":
+            self._draw_player(track, player_status)
+            self._footer("←→ SEEK  ↑↓ VOLUME", "SPACE PAUSE  ESC BACK")
         else:
-            visible=6 if section=="Search" else 7; start=max(0,selected-visible+1)
-            for i,item in enumerate(items[start:start+visible]):
-                idx=start+i; y=y0+i*17
-                if idx==selected: d.rounded_rectangle((4,y-1,316,y+15),radius=2,fill=(49,36,28)); c=ORANGE
-                else: c=WHITE
-                if isinstance(item,dict):
-                    title=item.get("title") or item.get("name") or "Untitled"
-                    artist=(item.get("user") or {}).get("username","")
-                    self.text(title+(" · "+artist if artist else ""),9,y,c,self.small,300)
-                else: self.text(item,9,y,c,self.small,300)
-            if not items: self.text(status or "No items",8,y0+8,MUTED,self.small,300)
-            if section=="Search": self.text("ENTER search  F favorite  P playlist",8,145,MUTED,self.small,300)
-            elif section in ("Favorites","Recently played","Playlist"): self.text("ENTER play  F favorite  P playlist",8,145,MUTED,self.small,300)
-            elif section=="Settings": self.text("ENTER select   +/- volume",8,145,MUTED,self.small,300)
+            title = {"Favorites":"YOUR FAVORITES", "Playlists":"YOUR PLAYLISTS",
+                     "Playlist":"PLAYLIST TRACKS", "Recently played":"RECENTLY PLAYED",
+                     "Settings":"PREFERENCES", "My Tracks":"MY TRACKS"}.get(section, section.upper())
+            self._text(title, 9, 31, self.font, WHITE)
+            self._text(f"{len(items)} ITEMS", 10, 49, self.tiny, MUTED)
+            if section == "Settings":
+                rows = [f"Playback volume     {getattr(self, 'volume', 70)}%",
+                        "Clear play history", "About this player", "Back"]
+                self._draw_rows(rows, selected, 62, 4)
+            else:
+                self._draw_rows(items, selected, 62, 4)
+            self._footer("↑↓ MOVE  ENTER PLAY", "F SAVE  P ADD")
         if message:
-            d.rectangle((0,155,W,170),fill=(45,35,25)); self.text(message,5,155,ORANGE,self.small,310)
+            d.rounded_rectangle((7, 137, 313, 148), radius=4, fill=(35, 29, 26))
+            self._text(message, 12, 139, self.tiny, ACCENT, 292)
         self._present()
 
+    def _draw_rows(self, items, selected, y0, visible):
+        d = self.drawctx
+        start = max(0, min(selected - visible + 1, max(0, len(items) - visible)))
+        for offset, item in enumerate(items[start:start + visible]):
+            idx = start + offset
+            y = y0 + offset * 16
+            active = idx == selected
+            d.rounded_rectangle((8, y, 312, y + 14), radius=4,
+                                fill=ACCENT_SOFT if active else SURFACE,
+                                outline=ACCENT if active else SURFACE, width=1)
+            title = item
+            subtitle = ""
+            if isinstance(item, dict):
+                title = item.get("title") or item.get("name") or "Untitled track"
+                subtitle = (item.get("user") or {}).get("username", "")
+                if not subtitle and item.get("tracks") is not None:
+                    subtitle = f"{len(item.get('tracks', []))} tracks"
+            self._text(title, 14, y + 2, self.small, WHITE if active else (215, 219, 225), 226)
+            if subtitle:
+                self._text(subtitle, 246, y + 3, self.tiny, MUTED, 58)
+
+    def _draw_player(self, track, state):
+        d = self.drawctx
+        d.rounded_rectangle((8, 32, 312, 125), radius=9, fill=SURFACE, outline=LINE, width=1)
+        d.rounded_rectangle((17, 42, 75, 100), radius=7, fill=(44, 29, 26))
+        d.rounded_rectangle((27, 52, 65, 90), radius=5, fill=ACCENT)
+        d.polygon([(41, 60), (41, 82), (57, 71)], fill=BG)
+        title = (track or {}).get("title", "Nothing playing") if isinstance(track, dict) else "Nothing playing"
+        artist = ((track or {}).get("user") or {}).get("username", "") if isinstance(track, dict) else ""
+        self._text(title, 86, 44, self.font, WHITE, 215)
+        self._text(artist or "SOUNDCLOUD PUBLIC", 87, 63, self.tiny, MUTED, 210)
+        pos = float(state.get("time", 0) or 0)
+        dur = float(state.get("duration", 0) or 0)
+        d.rounded_rectangle((18, 108, 302, 113), radius=3, fill=LINE)
+        if dur > 0:
+            d.rounded_rectangle((18, 108, 18 + int(284 * min(1, pos / dur)), 113), radius=3, fill=ACCENT)
+        self._text(f"{int(pos)//60:02}:{int(pos)%60:02}", 18, 116, self.tiny, MUTED)
+        self._text(f"{int(dur)//60:02}:{int(dur)%60:02}", 268, 116, self.tiny, MUTED)
+        self._pill((8, 129, 102, 148), "PREVIOUS / BACK")
+        self._pill((113, 129, 207, 148), "PLAY / PAUSE", selected=True)
+        self._pill((218, 129, 312, 148), "NEXT / SEEK")
+
     def _present(self):
-        arr=np.asarray(self.image,dtype=np.uint8)
-        r=(arr[:,:,0].astype(np.uint16)>>3)<<11
-        g=(arr[:,:,1].astype(np.uint16)>>2)<<5
-        b=arr[:,:,2].astype(np.uint16)>>3
-        raw=(r|g|b).astype("<u2").tobytes()
-        if self.stride==self.width*2:
-            self.fb.seek(0); self.fb.write(raw)
+        arr = np.asarray(self.image, dtype=np.uint8)
+        r = (arr[:, :, 0].astype(np.uint16) >> 3) << 11
+        g = (arr[:, :, 1].astype(np.uint16) >> 2) << 5
+        b = arr[:, :, 2].astype(np.uint16) >> 3
+        raw = (r | g | b).astype("<u2").tobytes()
+        if self.stride == self.width * 2:
+            self.fb.seek(0)
+            self.fb.write(raw)
         else:
             for y in range(self.height):
-                self.fb.seek(y*self.stride); self.fb.write(raw[y*self.width*2:(y+1)*self.width*2])
+                self.fb.seek(y * self.stride)
+                self.fb.write(raw[y * self.width * 2:(y + 1) * self.width * 2])
 
     def tick(self):
-        elapsed=time.monotonic()-self.last_draw
-        if elapsed<1/25: time.sleep(1/25-elapsed)
-        self.last_draw=time.monotonic()
+        elapsed = time.monotonic() - self.last_draw
+        if elapsed < 1 / 30:
+            time.sleep(1 / 30 - elapsed)
+        self.last_draw = time.monotonic()
 
     def quit(self):
-        try: self.fb.seek(0); self.fb.write(b"\\x00"*(self.stride*self.height))
-        except Exception: pass
-        try: self.fb.close(); os.close(self.fb_fd)
-        except Exception: pass
-        if self.device:
-            try: self.device.close()
-            except Exception: pass
+        try:
+            self.fb.seek(0)
+            self.fb.write(b"\x00" * (self.stride * self.height))
+        except Exception:
+            pass
+        try:
+            self.fb.close()
+            os.close(self.fb_fd)
+        except Exception:
+            pass
+        for dev in self.devices:
+            try:
+                dev.close()
+            except Exception:
+                pass
