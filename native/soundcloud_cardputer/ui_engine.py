@@ -3,8 +3,11 @@ import pygame
 BG=(18,18,18); PANEL=(29,29,29); ORANGE=(255,85,0); WHITE=(245,245,245); MUTED=(160,160,160)
 class UI:
     def __init__(self,size=(320,170)):
+        print("BOOT: pygame.init begin", flush=True)
         pygame.init(); pygame.font.init()
+        print("BOOT: pygame.init complete; display.set_mode begin", flush=True)
         self.screen=pygame.display.set_mode(size)
+        print("BOOT: display.set_mode complete", flush=True)
         pygame.display.set_caption("SoundCloud")
         self.font=pygame.font.Font(None,18); self.small=pygame.font.Font(None,14); self.big=pygame.font.Font(None,23)
         self.clock=pygame.time.Clock()
