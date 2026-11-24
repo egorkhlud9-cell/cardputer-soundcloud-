@@ -79,7 +79,7 @@ class UI:
                 if not caps:
                     dev.close()
                     continue
-                dev.set_blocking(False)
+                os.set_blocking(dev.fd, False)
                 found.append(dev)
                 print(f"INPUT OPEN: {path} name={dev.name!r} key_count={len(caps)}", flush=True)
             except Exception as exc:
