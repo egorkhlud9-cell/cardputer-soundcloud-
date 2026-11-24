@@ -47,7 +47,7 @@ class Handler(BaseHTTPRequestHandler):
         path=urlparse(self.path).path
         if path=="/api/state":
             with LOCK: data=dict(STATE)
-            data["queue_count"]=len(data.get("queue",[]))
+            data["queue_count"]=len(data.get("queue",[]))\n            data["library_count"]=len(LIBRARY)
             return self.send(200,json.dumps(data,ensure_ascii=False))
         if path=="/api/commands":
             with LOCK: data=list(COMMANDS); COMMANDS.clear()
