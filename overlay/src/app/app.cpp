@@ -26,7 +26,7 @@ int Application::run() {
     execl("/usr/bin/zero-browser",
           "zero-browser",
           "--mode", "qtwebkit",
-          "--url", "http://127.0.0.1:8765/",
+          "--url", "http://127.0.0.1:8766/",
           static_cast<char *>(nullptr));
 
     std::perror("CloudZero: could not start Zero Browser");
