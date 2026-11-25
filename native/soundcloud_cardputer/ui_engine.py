@@ -35,6 +35,7 @@ class UI:
         self.devices = self._open_keyboards()
         self.shift_down = False
         self.last_draw = 0.0
+        self.anim_phase = 0.0
         self.last_input_log = 0.0
         self._unblank()
         print(f"FB: {self.fb_path} {self.width}x{self.height} RGB565 stride={self.stride}", flush=True)
@@ -275,21 +276,50 @@ class UI:
 
     def _draw_player(self, track, state):
         d = self.drawctx
-        d.rounded_rectangle((8, 32, 312, 125), radius=9, fill=SURFACE, outline=LINE, width=1)
-        d.rounded_rectangle((17, 42, 75, 100), radius=7, fill=(44, 29, 26))
-        d.rounded_rectangle((27, 52, 65, 90), radius=5, fill=ACCENT)
-        d.polygon([(41, 60), (41, 82), (57, 71)], fill=BG)
+        phase = self.anim_phase
+        d.rounded_rectangle((8, 31, 312, 145), radius=10, fill=SURFACE, outline=LINE, width=1)
+
+        # Original AURORA artwork: a moving vinyl disc and a soft neon halo.
+        cx, cy = 47, 78
+        d.ellipse((cx-29, cy-29, cx+29, cy+29), fill=(39, 25, 24), outline=(89, 46, 36), width=2)
+        d.ellipse((cx-23, cy-23, cx+23, cy+23), outline=(112, 57, 43), width=1)
+        d.ellipse((cx-16, cy-16, cx+16, cy+16), outline=(112, 57, 43), width=1)
+        d.ellipse((cx-8, cy-8, cx+8, cy+8), fill=ACCENT)
+        d.ellipse((cx-2, cy-2, cx+2, cy+2), fill=BG)
+        # A small animated orbit marker gives the player a living, restrained motion.
+        import math
+        angle = phase * 1.7
+        px = cx + int(24 * math.cos(angle))
+        py = cy + int(24 * math.sin(angle))
+        d.ellipse((px-2, py-2, px+2, py+2), fill=(255, 178, 132))
+
         title = (track or {}).get("title", "Nothing playing") if isinstance(track, dict) else "Nothing playing"
         artist = ((track or {}).get("user") or {}).get("username", "") if isinstance(track, dict) else ""
-        self._text(title, 86, 44, self.font, WHITE, 215)
-        self._text(artist or "SOUNDCLOUD PUBLIC", 87, 63, self.tiny, MUTED, 210)
+        self._text(title, 88, 43, self.font, WHITE, 213)
+        self._text(artist or "SOUNDCLOUD PUBLIC", 89, 62, self.tiny, MUTED, 210)
+
+        # Animated equalizer bars, deliberately subtle so text stays readable.
+        bars_x, base_y = 91, 91
+        for i in range(27):
+            wave = (math.sin(phase * 2.2 + i * .62) + 1) * .5
+            wave2 = (math.sin(phase * 1.1 - i * .31) + 1) * .5
+            height = 3 + int(9 * (.25 * wave + .75 * wave2))
+            x = bars_x + i * 7
+            color = ACCENT if i % 4 == 0 else (116, 65, 51)
+            d.rounded_rectangle((x, base_y-height, x+3, base_y+1), radius=1, fill=color)
+
         pos = float(state.get("time", 0) or 0)
         dur = float(state.get("duration", 0) or 0)
         d.rounded_rectangle((18, 108, 302, 113), radius=3, fill=LINE)
         if dur > 0:
-            d.rounded_rectangle((18, 108, 18 + int(284 * min(1, pos / dur)), 113), radius=3, fill=ACCENT)
+            progress = max(0.0, min(1.0, pos / dur))
+            d.rounded_rectangle((18, 108, 18 + int(284 * progress), 113), radius=3, fill=ACCENT)
+            d.ellipse((14 + int(284 * progress), 106, 22 + int(284 * progress), 115), fill=WHITE)
         self._text(f"{int(pos)//60:02}:{int(pos)%60:02}", 18, 116, self.tiny, MUTED)
         self._text(f"{int(dur)//60:02}:{int(dur)%60:02}", 268, 116, self.tiny, MUTED)
+        volume = max(0, min(100, int(getattr(self, "volume", 70))))
+        self._text(f"VOL {volume:02d}%", 125, 116, self.tiny, ACCENT)
+
         self._pill((8, 129, 102, 148), "LEFT  -10 SEC")
         self._pill((113, 129, 207, 148), "SPACE  PAUSE", selected=True)
         self._pill((218, 129, 312, 148), "RIGHT  +10 SEC")
@@ -313,6 +343,7 @@ class UI:
         if elapsed < 1 / 30:
             time.sleep(1 / 30 - elapsed)
         self.last_draw = time.monotonic()
+        self.anim_phase = (self.anim_phase + 0.055) % 1000
 
     def quit(self):
         try:
