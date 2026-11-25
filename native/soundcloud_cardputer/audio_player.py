@@ -14,19 +14,21 @@ class AudioError(RuntimeError):
 
 
 class AudioPlayer:
-    """MPV-backed player with a local IPC channel and network-stream buffering."""
+    """MPV player that verifies IPC before handing it a network stream."""
 
     def __init__(self):
         self.process: subprocess.Popen | None = None
-        self.ipc_path = f"/tmp/sc-cardputer-{os.getuid()}.sock"
+        # A per-instance socket avoids collisions with stale sockets or another player.
+        self.ipc_path = f"/tmp/sc-{os.getuid()}-{os.getpid()}-{id(self):x}.sock"
         self.volume = 70
         self.current = None
         self.last_error = ""
+        self.log_path = Path.home() / ".local/state/soundcloud-cardputer/mpv.log"
 
     def available(self):
         return shutil.which("mpv") is not None
 
-    def _ipc(self, command, timeout=0.65):
+    def _ipc(self, command, timeout=1.0):
         process = self.process
         if not process or process.poll() is not None:
             return None
@@ -57,21 +59,39 @@ class AudioPlayer:
             return None
         return None
 
+    def _wait_for_ipc(self, timeout=8.0):
+        deadline = time.monotonic() + timeout
+        last_response = None
+        while time.monotonic() < deadline:
+            if not self.process or self.process.poll() is not None:
+                return False
+            # A successful property response proves the socket accepts and processes IPC.
+            last_response = self._ipc({"command": ["get_property", "idle-active"]}, timeout=0.5)
+            if last_response and last_response.get("error") == "success":
+                return True
+            time.sleep(0.1)
+        self.last_error = f"IPC handshake timed out; last response={last_response!r}"
+        return False
+
     def play(self, url, title=""):
         if not self.available():
             raise AudioError("MPV is missing. Reinstall SoundCloud Cardputer dependencies.")
         if not url or not str(url).startswith(("http://", "https://")):
             raise AudioError("The track did not return a valid public audio stream.")
+
         self.stop()
         try:
             Path(self.ipc_path).unlink(missing_ok=True)
         except OSError:
             pass
 
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
         env = os.environ.copy()
         env["MPV_VERBOSE"] = "no"
         args = [
             "mpv",
+            "--no-config",
+            "--idle=yes",
             "--no-video",
             "--no-terminal",
             "--force-window=no",
@@ -84,9 +104,8 @@ class AudioPlayer:
             "--demuxer-readahead-secs=30",
             "--network-timeout=30",
             "--stream-lavf-o=reconnect=1,reconnect_streamed=1,reconnect_delay_max=5",
-            "--msg-level=all=error",
-            "--",
-            str(url),
+            "--msg-level=all=warn",
+            "--log-file=" + str(self.log_path),
         ]
         try:
             self.process = subprocess.Popen(
@@ -102,19 +121,21 @@ class AudioPlayer:
             self.process = None
             raise AudioError(f"Could not start MPV: {exc}") from exc
 
-        self.current = str(title or "Unknown track")
-        deadline = time.monotonic() + 3.0
-        while time.monotonic() < deadline:
-            if self.process.poll() is not None:
-                self.process = None
-                self.current = None
-                raise AudioError("MPV stopped before playback started. Check the audio output.")
-            if os.path.exists(self.ipc_path):
-                break
-            time.sleep(0.05)
-        if not os.path.exists(self.ipc_path):
+        if not self._wait_for_ipc():
+            detail = self.last_error
             self.stop()
-            raise AudioError("MPV started but its control channel did not become ready.")
+            if detail:
+                raise AudioError(f"MPV control channel failed: {detail}. See {self.log_path}")
+            raise AudioError("MPV exited before its control channel became ready. See mpv.log")
+
+        response = self._ipc({"command": ["loadfile", str(url), "replace"]}, timeout=3.0)
+        if not response or response.get("error") != "success":
+            detail = response or self.last_error or "no IPC response"
+            self.stop()
+            raise AudioError(f"MPV could not accept the track: {detail}. See {self.log_path}")
+
+        self.current = str(title or "Unknown track")
+        self.last_error = ""
 
     def command(self, name, *args):
         return self._ipc({"command": [name, *args]})
@@ -125,7 +146,7 @@ class AudioPlayer:
     def stop(self):
         process = self.process
         if process and process.poll() is None:
-            self._ipc({"command": ["quit"]}, timeout=0.3)
+            self._ipc({"command": ["quit"]}, timeout=0.5)
             try:
                 process.wait(timeout=2)
             except subprocess.TimeoutExpired:
