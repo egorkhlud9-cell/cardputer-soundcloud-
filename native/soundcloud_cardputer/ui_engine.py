@@ -169,14 +169,16 @@ class UI:
         self.drawctx.text((x, y), value, font=font, fill=fill)
 
     def _background(self):
-        px = self.image.load()
-        for y in range(H):
-            for x in range(W):
-                glow = max(0, 1 - (((x-280)/210)**2 + ((y-8)/115)**2)**.5)
-                px[x, y] = (BG[0] + int(8*glow), BG[1] + int(8*glow), BG[2] + int(17*glow))
+        # Draw a restrained halo with a handful of shapes; avoid per-pixel work
+        # in the 24 FPS render loop on the small ARM board.
+        self.image.paste(BG, (0, 0, W, H))
         self.drawctx = ImageDraw.Draw(self.image)
+        for i in range(8):
+            inset = i * 7
+            self.drawctx.ellipse((224-inset, -58-inset, 370+inset, 88+inset),
+                                 outline=(12+i, 14+i, 25+i*2), width=5)
         for x in range(0, W, 32):
-            self.drawctx.line((x, 25, x, 150), fill=(12, 16, 25), width=1)
+            self.drawctx.line((x, 25, x, 150), fill=(11, 14, 22), width=1)
 
     def _brand(self, section, right="ONLINE"):
         d = self.drawctx
@@ -218,18 +220,19 @@ class UI:
         self._background(); d = self.drawctx
         self._brand(section, "KEYS OK" if self.devices else "NO KEYS")
         if section == "Home":
-            self._text("SOUND, IN", 11, 34, self.hero, WHITE)
-            self._text("A quieter way to find your next track.", 12, 59, self.small, MUTED)
-            d.rounded_rectangle((9, 82, 311, 119), radius=8, fill=(19, 24, 36), outline=(48, 57, 77), width=1)
-            d.rounded_rectangle((9, 82, 13, 119), radius=2, fill=ACCENT)
-            self._text("01   DISCOVER", 20, 88, self.font, WHITE)
-            self._text("Search public SoundCloud", 20, 105, self.tiny, MUTED)
-            cards = [("02", "LIBRARY"), ("03", "PLAYLISTS"), ("04", "RECENT"), ("05", "PLAYER")]
-            for i, (num, label) in enumerate(cards):
-                x = 10 + (i%2)*153; y = 126 + (i//2)*0
-                d.rounded_rectangle((x, y, x+146, y+18), radius=4, fill=(18, 23, 34), outline=(40, 48, 65), width=1)
-                self._text(num, x+7, y+4, self.tiny, ACCENT_2)
-                self._text(label, x+28, y+4, self.tiny, WHITE)
+            self._text("SOUND, IN.", 11, 34, self.hero, WHITE)
+            self._text("Your next favourite starts here.", 12, 59, self.small, MUTED)
+            tiles = [("01", "DISCOVER"), ("02", "LIBRARY"), ("03", "PLAYLISTS"),
+                     ("04", "RECENT"), ("05", "PLAYER"), ("06", "SETTINGS")]
+            for i, (num, label) in enumerate(tiles):
+                x = 10 + (i % 2) * 153
+                y = 82 + (i // 2) * 21
+                active = i == selected
+                d.rounded_rectangle((x, y, x+146, y+18), radius=5,
+                    fill=(43, 31, 43) if active else (17, 22, 33),
+                    outline=(164, 94, 108) if active else (43, 52, 70), width=1)
+                self._text(num, x+7, y+4, self.tiny, ACCENT_2 if active else MUTED)
+                self._text(label, x+28, y+4, self.tiny, WHITE if active else (177, 188, 207))
             self._footer("F / X MOVE", "ENTER OPEN")
         elif section == "Search":
             self._text("FIND SOMETHING GOOD", 10, 32, self.font, WHITE)
