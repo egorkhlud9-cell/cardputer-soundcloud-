@@ -58,7 +58,7 @@ jobs:
         with:
           tag_name: v2.1.0
           target_commitish: ${{ github.sha }}
-          name: SoundCloud Cardputer AURORA 2.0
+          name: SoundCloud Cardputer AURORA 2.1
           body: |
             Prebuilt Debian package for Cardputer Zero (ARM64 / Debian 13).
 
