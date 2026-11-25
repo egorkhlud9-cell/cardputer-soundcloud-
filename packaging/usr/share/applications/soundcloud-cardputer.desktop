@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=SoundCloud
-Comment=Native SoundCloud music player
+Name=AURORA SoundCloud
+Comment=A premium native SoundCloud player for Cardputer Zero
 Exec=/usr/bin/soundcloud-cardputer
-Icon=soundcloud-cardputer
+Icon=/usr/share/icons/hicolor/128x128/apps/aurora-soundcloud.png
 Terminal=false
 Categories=AudioVideo;Audio;Player;

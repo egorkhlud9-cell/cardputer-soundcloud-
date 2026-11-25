@@ -8,20 +8,49 @@ print("BOOT: module imports complete", flush=True)
 
 SECTIONS=["Home","Search","Favorites","Playlists","My Tracks","Now Playing","Settings"]
 def public_search(query):
-    if not shutil.which("yt-dlp"): raise RuntimeError("yt-dlp is missing. Reinstall the app dependencies.")
-    result=subprocess.run(["yt-dlp","--flat-playlist","-J","scsearch15:"+query],
-        capture_output=True,text=True,timeout=75)
-    if result.returncode: raise RuntimeError((result.stderr or "SoundCloud public search failed")[-180:])
-    data=json.loads(result.stdout)
-    tracks=[]
-    for x in data.get("entries",[]):
-        if not x: continue
-        url=x.get("webpage_url") or x.get("url")
-        if url and not str(url).startswith("http"):
-            url="https://soundcloud.com/"+str(url).lstrip("/")
-        tracks.append({"title":x.get("title") or "Untitled","permalink_url":url,
-            "user":{"username":x.get("uploader") or x.get("channel") or ""}})
-    return tracks
+    """Search public SoundCloud with bounded retries and readable network errors."""
+    if not shutil.which("yt-dlp"):
+        raise RuntimeError("yt-dlp is missing. Reinstall AURORA dependencies.")
+    args = ["yt-dlp", "--flat-playlist", "-J", "--no-warnings",
+        "--force-ipv4", "--socket-timeout", "15", "--retries", "2",
+        "--extractor-retries", "2", "scsearch15:" + query]
+    last_error = ""
+    network_terms = ("transporterror", "connection", "timed out", "timeout",
+        "name or service not known", "temporary failure", "network is unreachable",
+        "maxretryerror", "newconnectionerror", "ssl")
+    for attempt in range(3):
+        try:
+            result = subprocess.run(args, capture_output=True, text=True, timeout=45)
+        except subprocess.TimeoutExpired:
+            last_error = "SoundCloud search timed out. Check Wi-Fi and press R to retry."
+            continue
+        except OSError as exc:
+            raise RuntimeError("Could not start yt-dlp: " + str(exc)[:70])
+        if result.returncode == 0:
+            try:
+                data = json.loads(result.stdout)
+            except json.JSONDecodeError:
+                raise RuntimeError("SoundCloud returned an unreadable search response.")
+            tracks = []
+            for x in data.get("entries", []):
+                if not x:
+                    continue
+                url = x.get("webpage_url") or x.get("url")
+                if url and not str(url).startswith("http"):
+                    url = "https://soundcloud.com/" + str(url).lstrip("/")
+                tracks.append({"title": x.get("title") or "Untitled",
+                    "permalink_url": url,
+                    "user": {"username": x.get("uploader") or x.get("channel") or ""}})
+            return tracks
+        last_error = (result.stderr or "SoundCloud public search failed")[-500:]
+        if not any(term in last_error.lower() for term in network_terms):
+            break
+        if attempt < 2:
+            time.sleep(1.2 * (attempt + 1))
+    if any(term in last_error.lower() for term in network_terms):
+        raise RuntimeError("SoundCloud connection failed. Check Wi-Fi/DNS, then press R to retry.")
+    clean = " ".join(last_error.split())
+    raise RuntimeError(("SoundCloud search failed: " + clean[-100:])[:110])
 
 class App:
     def __init__(self):
@@ -36,6 +65,8 @@ class App:
         self.message="Public mode · no account or API key"; self.search_text=""
         self.busy=False; self.running=True
         self.player.volume=int(self.config.get("volume",70))
+        self.muted=False
+        self.pre_mute_volume=self.player.volume
         self.ui.volume=self.player.volume
         self.load_section()
     def start_task(self,fn):
@@ -133,23 +164,36 @@ class App:
             elif self.section=="Playlist": self.navigate("Playlists")
             elif self.section!="Home": self.navigate("Home")
             else: self.running=False
-        elif self.section=="Now Playing" and key in (pygame.K_UP,pygame.K_PLUS,pygame.K_EQUALS):
-            self.player.set_volume(self.player.volume+5); self.ui.volume=self.player.volume; self.message=f"Volume {self.player.volume}%"
-        elif self.section=="Now Playing" and key in (pygame.K_DOWN,pygame.K_MINUS):
-            self.player.set_volume(self.player.volume-5); self.ui.volume=self.player.volume; self.message=f"Volume {self.player.volume}%"
-        elif key==pygame.K_UP: self.selected=max(0,self.selected-1)
-        elif key==pygame.K_DOWN: self.selected=min(max(0,len(self.items)-1),self.selected+1)
+        elif self.section=="Now Playing" and key == pygame.K_a:
+            if self.muted:
+                self.muted=False
+                self.player.set_volume(self.pre_mute_volume)
+            else:
+                self.pre_mute_volume=max(5,self.player.volume)
+                self.muted=True
+                self.player.set_volume(0)
+            self.message = "Muted" if self.muted else f"Volume {self.player.volume}%"
+        elif self.section=="Now Playing" and key in (pygame.K_d, pygame.K_PLUS, pygame.K_EQUALS):
+            self.pre_mute_volume=min(100,(self.pre_mute_volume if self.muted else self.player.volume)+5)
+            if not self.muted: self.player.set_volume(self.pre_mute_volume)
+            self.ui.volume=self.player.volume; self.message=f"Volume {self.pre_mute_volume}%"
+        elif self.section=="Now Playing" and key in (pygame.K_s, pygame.K_MINUS):
+            self.pre_mute_volume=max(0,(self.pre_mute_volume if self.muted else self.player.volume)-5)
+            if not self.muted: self.player.set_volume(self.pre_mute_volume)
+            self.ui.volume=self.player.volume; self.message=f"Volume {self.pre_mute_volume}%"
+        elif key in (pygame.K_UP, pygame.K_f): self.selected=max(0,self.selected-1)
+        elif key in (pygame.K_DOWN, pygame.K_x): self.selected=min(max(0,len(self.items)-1),self.selected+1)
         elif key in (pygame.K_RETURN,pygame.K_KP_ENTER): self.activate()
         elif key==pygame.K_SPACE:
             if self.section=="Now Playing": self.player.toggle()
             elif self.section in ("Search","Favorites","Recently played","Playlist") and self.items:
                 self.start_task(lambda:self.play_track(self.items[self.selected]))
-        elif key==pygame.K_f and self.section in ("Search","Favorites","Recently played") and self.items:
+        elif key in (pygame.K_v, pygame.K_f) and self.section in ("Search","Favorites","Recently played") and self.items:
             self.toggle_favorite(self.items[self.selected])
         elif key==pygame.K_p and self.section in ("Search","Favorites","Recently played") and self.items:
             self.add_to_playlist(self.items[self.selected])
-        elif key==pygame.K_LEFT and self.section=="Now Playing": self.player.seek(-10)
-        elif key==pygame.K_RIGHT and self.section=="Now Playing": self.player.seek(10)
+        elif key in (pygame.K_LEFT, pygame.K_z) and self.section=="Now Playing": self.player.seek(-10)
+        elif key in (pygame.K_RIGHT, pygame.K_c) and self.section=="Now Playing": self.player.seek(10)
         elif key==pygame.K_r: self.start_task(self.load_section)
         elif key in (pygame.K_PLUS,pygame.K_EQUALS) and self.section!="Now Playing":
             self.player.set_volume(self.player.volume+5); self.message=f"Volume {self.player.volume}%"

@@ -1,22 +1,23 @@
 #!/bin/sh
 set -e
-# Retire the old browser-based CloudZero installation, without touching user data.
+
+# Retire only known legacy CloudZero service launchers. Do not recursively
+# delete application directories or user data during package installation.
 systemctl disable --now cloudzero-bridge.service >/dev/null 2>&1 || true
-rm -f /etc/systemd/system/cloudzero-bridge.service /etc/systemd/system/multi-user.target.wants/cloudzero-bridge.service
-rm -f /lib/systemd/system/cloudzero-bridge.service /usr/lib/systemd/system/cloudzero-bridge.service
-rm -f /etc/systemd/user/cloudzero-bridge.service /usr/lib/systemd/user/cloudzero-bridge.service
+rm -f /etc/systemd/system/cloudzero-bridge.service
+rm -f /etc/systemd/system/multi-user.target.wants/cloudzero-bridge.service
+rm -f /lib/systemd/system/cloudzero-bridge.service
+rm -f /usr/lib/systemd/system/cloudzero-bridge.service
+rm -f /etc/systemd/user/cloudzero-bridge.service
+rm -f /usr/lib/systemd/user/cloudzero-bridge.service
 for home in /home/* /root; do
   [ -d "$home" ] || continue
   rm -f "$home/.config/systemd/user/cloudzero-bridge.service"
   rm -f "$home/.config/systemd/user/default.target.wants/cloudzero-bridge.service"
 done
-for dir in /usr/share/APPLaunch/applications /usr/share/APPLaunch/apps /usr/share/applications /opt; do
-  [ -d "$dir" ] || continue
-  find "$dir" -maxdepth 3 -iname '*cloudzero*' -exec rm -rf {} + 2>/dev/null || true
-done
 rm -f /usr/local/bin/cloudzero /usr/bin/cloudzero
 systemctl daemon-reload >/dev/null 2>&1 || true
-pkill -f '[z]ero-browser.*127\.0\.0\.1:8766' >/dev/null 2>&1 || true
+
 # The app reads the Cardputer keyboard through Linux evdev. Grant the
 # installing desktop user access to input devices when installed via sudo.
 target_user="${SUDO_USER:-}"
@@ -25,6 +26,12 @@ if [ -n "$target_user" ] && [ "$target_user" != root ] && getent group input >/d
     usermod -aG input "$target_user" || true
   fi
 fi
+
 chmod 755 /usr/bin/soundcloud-cardputer
-if command -v update-desktop-database >/dev/null 2>&1; then update-desktop-database -q /usr/share/applications || true; fi
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database -q /usr/share/applications || true
+fi
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -f /usr/share/icons/hicolor >/dev/null 2>&1 || true
+fi
 exit 0
