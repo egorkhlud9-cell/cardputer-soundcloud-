@@ -44,7 +44,7 @@ If APPLaunch was already open during installation, close and reopen it to refres
 |---|---|
 | F / X | Navigate menus (physical up/down keys) |
 | Enter | Open / select / play |
-| Space | Pause / resume |
+| Q (play/pause symbol) | Pause / resume |
 | Z / C | Seek −10 / +10 seconds in Now Playing |
 | A / S / D in Now Playing | Mute / volume down / volume up |
 | + / = | Volume up |
