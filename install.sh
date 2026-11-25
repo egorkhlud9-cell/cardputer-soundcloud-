@@ -31,6 +31,6 @@ apt-get install -y "$PACKAGE_FILE"
 rm -f "$PACKAGE_FILE"
 
 echo
-echo "SoundCloud Cardputer AURORA 2.0 is installed."
+echo "SoundCloud Cardputer AURORA 2.1 is installed."
 echo "Open APPLaunch and select SoundCloud, or run: soundcloud-cardputer"
 echo "No compilation or package building was performed on this device."
