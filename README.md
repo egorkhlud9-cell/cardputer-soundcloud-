@@ -1,4 +1,4 @@
-# SoundCloud Cardputer — AURORA 2.0
+# SoundCloud Cardputer — AURORA 2.1
 
 A native SoundCloud player for Cardputer Zero. It uses the device's Linux framebuffer and keyboard input, MPV for audio, and yt-dlp for public SoundCloud search and stream resolution.
 
@@ -28,7 +28,7 @@ Connect to the Cardputer over SSH from your computer, then paste this single com
 curl -fsSL https://raw.githubusercontent.com/egorkhlud9-cell/cardputer-soundcloud-/release/2.0-aurora-player/install.sh | sudo bash
 ```
 
-The installer checks that the device is ARM64, downloads the prebuilt `soundcloud-cardputer_2.0.0_all.deb` release asset and installs it with APT, including its dependencies.
+The installer checks that the device is ARM64, downloads the prebuilt `soundcloud-cardputer_2.1.0_all.deb` release asset and installs it with APT, including its dependencies.
 
 After installation, open APPLaunch and select **SoundCloud**. You can also launch it over SSH with:
 
@@ -42,14 +42,14 @@ If APPLaunch was already open during installation, close and reopen it to refres
 
 | Key | Action |
 |---|---|
-| Up / Down | Navigate menus |
+| F / X | Navigate menus (physical up/down keys) |
 | Enter | Open / select / play |
 | Space | Pause / resume |
-| Left / Right | Seek −10 / +10 seconds in Now Playing |
-| Up / Down in Now Playing | Volume +5 / −5 |
+| Z / C | Seek −10 / +10 seconds in Now Playing |
+| A / S / D in Now Playing | Mute / volume down / volume up |
 | + / = | Volume up |
 | − | Volume down |
-| F | Add or remove local favorite |
+| V | Add or remove local favorite |
 | P | Add selected track to the first local playlist |
 | R | Refresh current section |
 | Escape / Backspace | Back / exit |
@@ -71,7 +71,7 @@ Do not run the build script on Cardputer Zero. The package is built in GitHub Ac
 ./build_deb.sh
 ```
 
-The output is `dist/soundcloud-cardputer_2.0.0_all.deb`.
+The output is `dist/soundcloud-cardputer_2.1.0_all.deb`.
 
 ## Uninstall
 
