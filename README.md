@@ -30,7 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/egorkhlud9-cell/cardputer-soundclou
 
 The installer checks that the device is ARM64, downloads the prebuilt `soundcloud-cardputer_2.1.0_all.deb` release asset and installs it with APT, including its dependencies.
 
-After installation, open APPLaunch and select **SoundCloud**. You can also launch it over SSH with:
+After installation, open APPLaunch and select **AURORA SoundCloud**. You can also launch it over SSH with:
 
 ```bash
 soundcloud-cardputer
