@@ -96,7 +96,7 @@ class UI:
             ecodes.KEY_LEFT: pygame.K_LEFT, ecodes.KEY_RIGHT: pygame.K_RIGHT,
             ecodes.KEY_ENTER: pygame.K_RETURN, ecodes.KEY_KPENTER: pygame.K_KP_ENTER,
             ecodes.KEY_ESC: pygame.K_ESCAPE, ecodes.KEY_BACKSPACE: pygame.K_BACKSPACE,
-            ecodes.KEY_SPACE: pygame.K_SPACE, ecodes.KEY_F: pygame.K_f,
+            ecodes.KEY_SPACE: pygame.K_SPACE, ecodes.KEY_Q: pygame.K_q, ecodes.KEY_F: pygame.K_f,
             ecodes.KEY_P: pygame.K_p, ecodes.KEY_R: pygame.K_r,
             ecodes.KEY_V: pygame.K_v, ecodes.KEY_A: pygame.K_a,
             ecodes.KEY_S: pygame.K_s, ecodes.KEY_D: pygame.K_d,
@@ -244,7 +244,7 @@ class UI:
             self._footer("TYPE TO SEARCH  DEL ERASE", "ENTER SEARCH / PLAY")
         elif section == "Now Playing":
             self._draw_player(track, player_status)
-            self._footer("Z / C SEEK   A / D VOL", "SPACE PAUSE")
+            self._footer("Z / C SEEK   A / D VOL", "Q PLAY / PAUSE")
         else:
             title = {"Favorites":"SAVED TRACKS", "Playlists":"YOUR COLLECTION",
                      "Playlist":"PLAYLIST", "Recently played":"LISTENING HISTORY",
@@ -295,7 +295,7 @@ class UI:
         self._text(f"{int(dur)//60:02}:{int(dur)%60:02}", 268, 117, self.tiny, MUTED)
         self._text(f"VOL {int(getattr(self,'volume',70)):02d}%", 125, 117, self.tiny, ACCENT_2)
         self._pill((9, 130, 101, 148), "Z   -10 SEC")
-        self._pill((114, 130, 206, 148), "SPACE  PAUSE", True)
+        self._pill((114, 130, 206, 148), "Q  PLAY / PAUSE", True)
         self._pill((219, 130, 311, 148), "C   +10 SEC")
 
     def _pill(self, box, label, selected=False):
