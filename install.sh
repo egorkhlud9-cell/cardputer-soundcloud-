@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 
-PACKAGE_URL="https://github.com/egorkhlud9-cell/cardputer-soundcloud-/releases/download/v2.0.0/soundcloud-cardputer_2.0.0_all.deb"
-PACKAGE_FILE="/tmp/soundcloud-cardputer_2.0.0_all.deb"
+PACKAGE_URL="https://github.com/egorkhlud9-cell/cardputer-soundcloud-/releases/download/v2.1.0/soundcloud-cardputer_2.1.0_all.deb"
+PACKAGE_FILE="/tmp/soundcloud-cardputer_2.1.0_all.deb"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run this installer as root: curl ... | sudo bash" >&2
@@ -23,7 +23,7 @@ fi
 echo "[1/3] Updating package index..."
 apt-get update
 
-echo "[2/3] Downloading prebuilt SoundCloud Cardputer 2.0.0..."
+echo "[2/3] Downloading prebuilt SoundCloud Cardputer 2.1.0..."
 curl -fL --retry 3 --connect-timeout 20 "$PACKAGE_URL" -o "$PACKAGE_FILE"
 
 echo "[3/3] Installing package and dependencies..."
