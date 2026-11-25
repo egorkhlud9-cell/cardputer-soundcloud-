@@ -3,7 +3,7 @@ set -eu
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 OUT="$ROOT/dist"
 PKG="$OUT/soundcloud-cardputer"
-VERSION=2.0.0
+VERSION=2.1.0
 rm -rf "$OUT"
 mkdir -p "$PKG/DEBIAN" "$PKG/opt/soundcloud-cardputer" "$PKG/usr/bin" "$PKG/usr/share/applications" "$PKG/usr/share/APPLaunch/applications" "$PKG/usr/share/icons/hicolor/128x128/apps"
 cp "$ROOT/packaging/DEBIAN/control" "$PKG/DEBIAN/control"
@@ -12,7 +12,7 @@ cp "$ROOT/packaging/DEBIAN/prerm" "$PKG/DEBIAN/prerm"
 cp "$ROOT/packaging/usr/bin/soundcloud-cardputer" "$PKG/usr/bin/soundcloud-cardputer"
 cp "$ROOT/packaging/usr/share/applications/soundcloud-cardputer.desktop" "$PKG/usr/share/applications/"
 cp "$ROOT/packaging/usr/share/applications/soundcloud-cardputer.desktop" "$PKG/usr/share/APPLaunch/applications/"
-cp "$ROOT/assets/icon.png" "$PKG/usr/share/icons/hicolor/128x128/apps/soundcloud-cardputer.png"
+cp python3 "$ROOT/assets/generate_icon.py" "$PKG/usr/share/icons/hicolor/128x128/apps/aurora-soundcloud.png"
 cp "$ROOT/native/launch.sh" "$PKG/opt/soundcloud-cardputer/launch.sh"
 cp -R "$ROOT/native/soundcloud_cardputer" "$PKG/opt/soundcloud-cardputer/"
 chmod 755 "$PKG/DEBIAN/postinst" "$PKG/DEBIAN/prerm" "$PKG/usr/bin/soundcloud-cardputer" "$PKG/opt/soundcloud-cardputer/launch.sh"
