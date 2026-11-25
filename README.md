@@ -1,61 +1,48 @@
 # SoundCloud Cardputer — AURORA 2.0
 
-A native, offline-friendly-feeling SoundCloud player for Cardputer Zero. It uses the device's Linux framebuffer and keyboard input, MPV for audio, and yt-dlp for public SoundCloud search and stream resolution. There is no browser, WebView, phone bridge, API key, paid subscription or SoundCloud login.
+A native SoundCloud player for Cardputer Zero. It uses the device's Linux framebuffer and keyboard input, MPV for audio, and yt-dlp for public SoundCloud search and stream resolution.
 
-## What it does
+## Features
 
 - Public SoundCloud search and playback.
-- Native 320×170 interface designed for the Cardputer screen.
+- Native 320×170 interface for Cardputer Zero.
 - Home, Search, Favorites, Playlists, Recently Played, Now Playing and Settings screens.
-- Local favorites, local playlists and listening history.
-- Keyboard navigation, play/pause, ±10-second seek and volume adjustment.
-- MPV network cache and stream reconnect options to make playback more resilient on unstable Wi-Fi.
-- Launcher entry and app icon installed for APPLaunch and the desktop application menu.
-- Local data is stored in `~/.config/soundcloud-cardputer/`.
+- Animated vinyl/orbit visual, equalizer animation, playback progress and volume readout.
+- Local favorites, playlists and listening history.
+- Keyboard navigation, play/pause, seek and volume controls.
+- MPV network cache and reconnect options to improve resilience on unstable Wi-Fi.
+- APPLaunch launcher entry and application icon.
+- User data is stored in `~/.config/soundcloud-cardputer/`.
 
-## Important limitations
+## Limitations
 
-This is a public-content player, not an official SoundCloud client. It does not sign in, synchronize private likes/playlists, upload tracks or access private content. Search and playback depend on public content and yt-dlp compatibility with SoundCloud; changes on SoundCloud's side can temporarily affect search or playback. Network buffering reduces interruptions but cannot guarantee uninterrupted playback when Wi-Fi or the source itself drops.
+This is a public-content player, not an official SoundCloud client. It does not sign in, synchronize private likes/playlists, upload tracks or access private content. Search and playback depend on public content and yt-dlp compatibility with SoundCloud. Network buffering cannot guarantee uninterrupted playback if Wi-Fi or the source itself becomes unavailable.
 
-## Install on Cardputer Zero over SSH
+## Install on Cardputer Zero (one command)
 
-Run these commands from your computer, replacing `CARDPUTER_IP` with the Cardputer Zero's current IP address:
+The Debian package is built by **GitHub Actions**, not on the Cardputer. The device only downloads and installs the finished ARM64 package. No Git clone, compilation, Python build step or package building is needed on the Cardputer.
 
-```bash
-ssh egor@CARDPUTER_IP
-```
-
-Then on the Cardputer:
+Connect to the Cardputer over SSH from your computer, then paste this single command:
 
 ```bash
-sudo apt update
-sudo apt install -y git ca-certificates
-cd ~
-git clone --branch release/2.0-aurora-player --depth 1 https://github.com/egorkhlud9-cell/cardputer-soundcloud-.git
-cd cardputer-soundcloud-
-chmod +x build_deb.sh
-./build_deb.sh
-sudo apt install -y ./dist/soundcloud-cardputer_2.0.0_all.deb
+curl -fsSL https://raw.githubusercontent.com/egorkhlud9-cell/cardputer-soundcloud-/release/2.0-aurora-player/install.sh | sudo bash
 ```
 
-After installation, return to APPLaunch and refresh/reopen its application list. Launch **SoundCloud**. You can also start it from SSH with:
+The installer checks that the device is ARM64, downloads the prebuilt `soundcloud-cardputer_2.0.0_all.deb` release asset and installs it with APT, including its dependencies.
+
+After installation, open APPLaunch and select **SoundCloud**. You can also launch it over SSH with:
 
 ```bash
 soundcloud-cardputer
 ```
 
-To inspect startup and crash logs:
-
-```bash
-tail -n 100 ~/.local/state/soundcloud-cardputer/launch.log
-tail -n 100 ~/.local/state/soundcloud-cardputer/crash.log
-```
+If APPLaunch was already open during installation, close and reopen it to refresh the app list.
 
 ## Controls
 
 | Key | Action |
 |---|---|
-| Up / Down | Move through menus |
+| Up / Down | Navigate menus |
 | Enter | Open / select / play |
 | Space | Pause / resume |
 | Left / Right | Seek −10 / +10 seconds in Now Playing |
@@ -64,18 +51,27 @@ tail -n 100 ~/.local/state/soundcloud-cardputer/crash.log
 | − | Volume down |
 | F | Add or remove local favorite |
 | P | Add selected track to the first local playlist |
-| R | Refresh the current section |
+| R | Refresh current section |
 | Escape / Backspace | Back / exit |
-| Type text in Search | Build a search query |
+| Type text in Search | Enter a search query |
 | Enter in Search | Search public SoundCloud tracks |
 
-## Build a package
+## Logs
+
+```bash
+tail -n 100 ~/.local/state/soundcloud-cardputer/launch.log
+tail -n 100 ~/.local/state/soundcloud-cardputer/crash.log
+```
+
+## Build (developer machine / GitHub Actions only)
+
+Do not run the build script on Cardputer Zero. The package is built in GitHub Actions on an external runner. For development, a Debian/Ubuntu computer can build it with:
 
 ```bash
 ./build_deb.sh
 ```
 
-The package is created at `dist/soundcloud-cardputer_2.0.0_all.deb`.
+The output is `dist/soundcloud-cardputer_2.0.0_all.deb`.
 
 ## Uninstall
 
