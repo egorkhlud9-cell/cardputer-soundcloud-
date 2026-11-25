@@ -66,6 +66,7 @@ class App:
         self.busy=False; self.running=True
         self.player.volume=int(self.config.get("volume",70))
         self.muted=False
+        self.pre_mute_volume=self.player.volume
         self.ui.volume=self.player.volume
         self.load_section()
     def start_task(self,fn):
@@ -164,14 +165,22 @@ class App:
             elif self.section!="Home": self.navigate("Home")
             else: self.running=False
         elif self.section=="Now Playing" and key == pygame.K_a:
-            self.muted = not self.muted
-            self.player.set_volume(0 if self.muted else max(5, self.player.volume))
+            if self.muted:
+                self.muted=False
+                self.player.set_volume(self.pre_mute_volume)
+            else:
+                self.pre_mute_volume=max(5,self.player.volume)
+                self.muted=True
+                self.player.set_volume(0)
             self.message = "Muted" if self.muted else f"Volume {self.player.volume}%"
         elif self.section=="Now Playing" and key in (pygame.K_d, pygame.K_PLUS, pygame.K_EQUALS):
-            self.muted=False
-            self.player.set_volume(self.player.volume+5); self.ui.volume=self.player.volume; self.message=f"Volume {self.player.volume}%"
+            self.pre_mute_volume=min(100,(self.pre_mute_volume if self.muted else self.player.volume)+5)
+            if not self.muted: self.player.set_volume(self.pre_mute_volume)
+            self.ui.volume=self.player.volume; self.message=f"Volume {self.pre_mute_volume}%"
         elif self.section=="Now Playing" and key in (pygame.K_s, pygame.K_MINUS):
-            self.player.set_volume(self.player.volume-5); self.ui.volume=self.player.volume; self.message=f"Volume {self.player.volume}%"
+            self.pre_mute_volume=max(0,(self.pre_mute_volume if self.muted else self.player.volume)-5)
+            if not self.muted: self.player.set_volume(self.pre_mute_volume)
+            self.ui.volume=self.player.volume; self.message=f"Volume {self.pre_mute_volume}%"
         elif key in (pygame.K_UP, pygame.K_f): self.selected=max(0,self.selected-1)
         elif key in (pygame.K_DOWN, pygame.K_x): self.selected=min(max(0,len(self.items)-1),self.selected+1)
         elif key in (pygame.K_RETURN,pygame.K_KP_ENTER): self.activate()
